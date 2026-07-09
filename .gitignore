@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+*.o
+*.so
+*.dylib
+*.dll
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.eggs/
+dist/
+*.egg-info/
+
+# Data
+data/lobster_sample/*.csv
+data/processed/*.pkl
+data/processed/*.parquet
+
+# ML artifacts
+python/ml/models/
+mlruns/
+*.pkl
+*.joblib
+
+# Env
+.env
+venv/
+.venv/
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
