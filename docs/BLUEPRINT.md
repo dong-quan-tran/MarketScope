@@ -1,11 +1,11 @@
-# MarketScope — Project Blueprint & TODO
+# Bookforge ï¿½ Project Blueprint & TODO
 
 ## Project Summary
 Low-latency C++20 limit order book with pybind11 Python bridge, multi-level
 Order Flow Imbalance (OFI) feature extraction, Kyle's Lambda liquidity
 estimation, and an XGBoost ML layer to predict short-term mid-price direction.
 
-## WEEK 1 — C++ Order Book Core
+## WEEK 1 ï¿½ C++ Order Book Core
 - [ ] Define Order struct in src/core/order.hpp
 - [ ] Implement PriceLevel in src/core/price_level.hpp/.cpp
 - [ ] Implement OrderBook in src/core/order_book.hpp/.cpp
@@ -15,7 +15,7 @@ estimation, and an XGBoost ML layer to predict short-term mid-price direction.
 - [ ] Add latency benchmark
 - [ ] Record results in docs/ARCHITECTURE.md
 
-## WEEK 2 — LOBSTER Replayer + Matching Engine
+## WEEK 2 ï¿½ LOBSTER Replayer + Matching Engine
 - [ ] Download LOBSTER sample data
 - [ ] Implement MessageReplayer
 - [ ] Implement MatchingEngine
@@ -23,15 +23,15 @@ estimation, and an XGBoost ML layer to predict short-term mid-price direction.
 - [ ] Replay real data end-to-end
 - [ ] Verify mid-price against LOBSTER snapshots
 
-## WEEK 3 — Feature Exporter + pybind11
-- [ ] Implement OFI levels 1–5
+## WEEK 3 ï¿½ Feature Exporter + pybind11
+- [ ] Implement OFI levels 1ï¿½5
 - [ ] Add weighted OFI, spread, imbalance
 - [ ] Expose C++ book + features with pybind11
 - [ ] Build Python wrapper
 - [ ] Implement Kyle's Lambda
 - [ ] Write Pytest cases
 
-## WEEK 4 — ML Signal Layer
+## WEEK 4 ï¿½ ML Signal Layer
 - [ ] Build label generator
 - [ ] Assemble feature set
 - [ ] Train XGBoost classifier
@@ -40,14 +40,14 @@ estimation, and an XGBoost ML layer to predict short-term mid-price direction.
 - [ ] Add SHAP feature importance
 - [ ] Log runs with MLflow
 
-## WEEK 5 — FastAPI + Dashboard
+## WEEK 5 ï¿½ FastAPI + Dashboard
 - [ ] Build FastAPI endpoints
 - [ ] Add API tests
 - [ ] Build React dashboard
 - [ ] Add latency benchmark script
 - [ ] Add Docker setup
 
-## WEEK 6 — Polish
+## WEEK 6 ï¿½ Polish
 - [ ] Reach 50+ Google Test cases
 - [ ] Reach 50+ Pytest cases
 - [ ] Add GitHub Actions CI

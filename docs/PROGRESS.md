@@ -1,5 +1,5 @@
 Progress — July 9, 2026
-Set up the initial MarketScope project layout and docs blueprint for the C++ order book core and future microstructure features.
+Set up the initial Bookforge project layout and docs blueprint for the C++ order book core and future microstructure features.
 
 Implemented the first version of OrderBook and PriceLevel (adds, cancels, executes top order, best bid/ask, mid-price, spread, depth queries).
 

@@ -1,6 +1,6 @@
-# MarketScope
+# Bookforge
 
-MarketScope is a hybrid **C++ + Python** market microstructure project built to study how a modern limit order book behaves under real order flow.
+Bookforge is a hybrid **C++ + Python** market microstructure project built to study how a modern limit order book behaves under real order flow.
 
 The core of the project is a low-latency **C++20 limit order book** with support for order insertion, cancellation, execution, and depth queries. On top of that, the project adds a Python research layer for feature extraction, liquidity estimation, machine learning, and a small API/dashboard demo.
 
@@ -69,7 +69,7 @@ Planned next work:
 ## Repository layout
 
 ```text
-MarketScope/
+Bookforge/
 ├── src/
 │   ├── core/          # order, price level, order book
 │   ├── features/      # feature extraction from book state
@@ -124,7 +124,7 @@ The Python layer will use exported order book features to train a short-horizon 
 
 ```bash
 git clone <your-repo-url>
-cd MarketScope
+cd Bookforge
 ```
 
 ### 2. Create a Python virtual environment
@@ -258,7 +258,7 @@ Most portfolio projects show either:
 - machine learning without systems depth, or
 - systems code without research depth
 
-MarketScope is meant to combine both:
+Bookforge is meant to combine both:
 - **systems engineering** through a C++ order book core
 - **market microstructure intuition**
 - **ML experimentation**
