@@ -28,6 +28,28 @@ std::optional<Order> PriceLevel::PopFrontOrder() {
     return front;
 }
 
+bool PriceLevel::ReduceFrontOrder(std::uint32_t quantity) {
+    if (orders_.empty()) {
+        return false;
+    }
+
+    if (quantity >= orders_.front().quantity) {
+        orders_.pop_front();
+        return true;
+    }
+
+    orders_.front().quantity -= quantity;
+    return true;
+}
+
+std::optional<Order> PriceLevel::FrontOrder() const {
+    if (orders_.empty()) {
+        return std::nullopt;
+    }
+
+    return orders_.front();
+}
+
 double PriceLevel::GetPrice() const {
     return price_;
 }

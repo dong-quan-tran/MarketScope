@@ -15,7 +15,9 @@ public:
     void AddOrder(const Order& order);
     bool RemoveOrder(std::uint64_t order_id);
     std::optional<Order> PopFrontOrder();
+    bool ReduceFrontOrder(std::uint32_t quantity);
 
+    [[nodiscard]] std::optional<Order> FrontOrder() const;
     [[nodiscard]] double GetPrice() const;
     [[nodiscard]] std::uint32_t TotalVolume() const;
     [[nodiscard]] bool Empty() const;

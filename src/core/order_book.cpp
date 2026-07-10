@@ -28,16 +28,52 @@ bool OrderBook::CancelOrder(std::uint64_t order_id, Side side, double price) {
             bids_.erase(it);
         }
         return removed;
-    } else {
-        auto it = asks_.find(price);
-        if (it == asks_.end()) return false;
-
-        const bool removed = it->second.RemoveOrder(order_id);
-        if (it->second.Empty()) {
-            asks_.erase(it);
-        }
-        return removed;
     }
+
+    auto it = asks_.find(price);
+    if (it == asks_.end()) return false;
+
+    const bool removed = it->second.RemoveOrder(order_id);
+    if (it->second.Empty()) {
+        asks_.erase(it);
+    }
+    return removed;
+}
+
+bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity) {
+    if (side == Side::Buy) {
+        auto it = bids_.find(price);
+        if (it == bids_.end()) {
+            return false;
+        }
+
+        const bool ok = it->second.ReduceFrontOrder(quantity);
+        if (!ok) {
+            return false;
+        }
+
+        if (it->second.Empty()) {
+            bids_.erase(it);
+        }
+
+        return true;
+    }
+
+    auto it = asks_.find(price);
+    if (it == asks_.end()) {
+        return false;
+    }
+
+    const bool ok = it->second.ReduceFrontOrder(quantity);
+    if (!ok) {
+        return false;
+    }
+
+    if (it->second.Empty()) {
+        asks_.erase(it);
+    }
+
+    return true;
 }
 
 std::optional<double> OrderBook::GetBestBid() const {
@@ -78,6 +114,42 @@ std::size_t OrderBook::BidLevelCount() const {
 
 std::size_t OrderBook::AskLevelCount() const {
     return asks_.size();
+}
+
+std::optional<std::uint32_t> OrderBook::GetLevelVolume(Side side, double price) const {
+    if (side == Side::Buy) {
+        auto it = bids_.find(price);
+        if (it == bids_.end()) return std::nullopt;
+        return it->second.TotalVolume();
+    }
+
+    auto it = asks_.find(price);
+    if (it == asks_.end()) return std::nullopt;
+    return it->second.TotalVolume();
+}
+
+std::vector<std::pair<double, std::uint32_t>> OrderBook::GetBidDepth(std::size_t levels) const {
+    std::vector<std::pair<double, std::uint32_t>> depth;
+    depth.reserve(levels);
+
+    for (const auto& [price, level] : bids_) {
+        if (depth.size() >= levels) break;
+        depth.emplace_back(price, level.TotalVolume());
+    }
+
+    return depth;
+}
+
+std::vector<std::pair<double, std::uint32_t>> OrderBook::GetAskDepth(std::size_t levels) const {
+    std::vector<std::pair<double, std::uint32_t>> depth;
+    depth.reserve(levels);
+
+    for (const auto& [price, level] : asks_) {
+        if (depth.size() >= levels) break;
+        depth.emplace_back(price, level.TotalVolume());
+    }
+
+    return depth;
 }
 
 }  // namespace marketscope
