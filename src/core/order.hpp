@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace marketscope {
+namespace bookforge {
 
 enum class Side : std::uint8_t {
     Buy = 0,
@@ -17,4 +17,4 @@ struct Order {
     std::uint64_t timestamp {0};
 };
 
-}  // namespace marketscope
+}  // namespace bookforge

@@ -2,7 +2,7 @@
 
 #include "core/order_book.hpp"
 
-using namespace marketscope;
+using namespace bookforge;
 
 TEST(OrderBookTest, EmptyBookHasNoBestBidOrAsk) {
     OrderBook book;

@@ -9,7 +9,7 @@
 #include "order.hpp"
 #include "price_level.hpp"
 
-namespace marketscope {
+namespace bookforge {
 
 class OrderBook {
 public:
@@ -34,4 +34,4 @@ private:
     std::map<double, PriceLevel, std::less<>> asks_;
 };
 
-}  // namespace marketscope
+}  // namespace bookforge

@@ -1,6 +1,6 @@
 #include "order_book.hpp"
 
-namespace marketscope {
+namespace bookforge {
 
 void OrderBook::AddOrder(const Order& order) {
     if (order.side == Side::Buy) {
@@ -152,4 +152,4 @@ std::vector<std::pair<double, std::uint32_t>> OrderBook::GetAskDepth(std::size_t
     return depth;
 }
 
-}  // namespace marketscope
+}  // namespace bookforge

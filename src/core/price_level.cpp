@@ -1,6 +1,6 @@
 #include "price_level.hpp"
 
-namespace marketscope {
+namespace bookforge {
 
 PriceLevel::PriceLevel(double price) : price_(price) {}
 
@@ -70,4 +70,4 @@ std::size_t PriceLevel::OrderCount() const {
     return orders_.size();
 }
 
-}  // namespace marketscope
+}  // namespace bookforge

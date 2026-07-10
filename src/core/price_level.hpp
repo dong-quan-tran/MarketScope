@@ -6,7 +6,7 @@
 
 #include "order.hpp"
 
-namespace marketscope {
+namespace bookforge {
 
 class PriceLevel {
 public:
@@ -28,4 +28,4 @@ private:
     std::deque<Order> orders_;
 };
 
-}  // namespace marketscope
+}  // namespace bookforge
