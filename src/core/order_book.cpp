@@ -3,6 +3,8 @@
 namespace bookforge {
 
 void OrderBook::AddOrder(const Order& order) {
+    order_index_[order.id] = OrderLocation{order.side, order.price};
+
     if (order.side == Side::Buy) {
         auto it = bids_.find(order.price);
         if (it == bids_.end()) {
@@ -22,7 +24,15 @@ void OrderBook::AddOrder(const Order& order) {
     }
 }
 
-bool OrderBook::CancelOrder(std::uint64_t order_id, Side side, double price) {
+bool OrderBook::CancelOrder(std::uint64_t order_id) {
+    auto index_it = order_index_.find(order_id);
+    if (index_it == order_index_.end()) {
+        return false;
+    }
+
+    const auto side = index_it->second.side;
+    const auto price = index_it->second.price;
+
     if (side == Side::Buy) {
         auto it = bids_.find(price);
         if (it == bids_.end()) {
@@ -38,6 +48,7 @@ bool OrderBook::CancelOrder(std::uint64_t order_id, Side side, double price) {
             bids_.erase(it);
         }
 
+        order_index_.erase(index_it);
         return true;
     }
 
@@ -55,6 +66,7 @@ bool OrderBook::CancelOrder(std::uint64_t order_id, Side side, double price) {
         asks_.erase(it);
     }
 
+    order_index_.erase(index_it);
     return true;
 }
 
@@ -65,9 +77,20 @@ bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity)
             return false;
         }
 
+        auto front_order = it->second.FrontOrder();
+        if (!front_order.has_value()) {
+            return false;
+        }
+
+        const bool fully_consumed = quantity >= front_order->quantity;
+
         bool ok = it->second.ReduceFrontOrder(quantity);
         if (!ok) {
             return false;
+        }
+
+        if (fully_consumed) {
+            order_index_.erase(front_order->id);
         }
 
         if (it->second.Empty()) {
@@ -82,9 +105,20 @@ bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity)
         return false;
     }
 
+    auto front_order = it->second.FrontOrder();
+    if (!front_order.has_value()) {
+        return false;
+    }
+
+    const bool fully_consumed = quantity >= front_order->quantity;
+
     bool ok = it->second.ReduceFrontOrder(quantity);
     if (!ok) {
         return false;
+    }
+
+    if (fully_consumed) {
+        order_index_.erase(front_order->id);
     }
 
     if (it->second.Empty()) {

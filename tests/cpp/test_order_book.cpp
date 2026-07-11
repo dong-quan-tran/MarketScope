@@ -44,7 +44,7 @@ TEST(OrderBookTest, CancelOrderRemovesLevelWhenEmpty) {
     OrderBook book;
     book.AddOrder(Order{1, Side::Buy, 99.50, 20, 1});
 
-    EXPECT_TRUE(book.CancelOrder(1, Side::Buy, 99.50));
+    EXPECT_TRUE(book.CancelOrder(1));
     EXPECT_EQ(book.BidLevelCount(), 0);
     EXPECT_FALSE(book.GetBestBid().has_value());
 }
@@ -132,7 +132,7 @@ TEST(OrderBookTest, CancelMissingOrderReturnsFalse) {
     OrderBook book;
     book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
 
-    EXPECT_FALSE(book.CancelOrder(999, Side::Buy, 100.00));
+    EXPECT_FALSE(book.CancelOrder(999));
 }
 
 TEST(OrderBookTest, ExecuteMissingLevelReturnsFalse) {
@@ -151,8 +151,8 @@ TEST(OrderBookTest, ExecuteTopOrderConsumesOldestOrderFirst) {
     ASSERT_TRUE(volume.has_value());
     EXPECT_EQ(*volume, 15);
 
-    EXPECT_FALSE(book.CancelOrder(1, Side::Buy, 100.00));
-    EXPECT_TRUE(book.CancelOrder(2, Side::Buy, 100.00));
+    EXPECT_FALSE(book.CancelOrder(1));
+    EXPECT_TRUE(book.CancelOrder(2));
     EXPECT_FALSE(book.GetLevelVolume(Side::Buy, 100.00).has_value());
 }
 
@@ -167,7 +167,7 @@ TEST(OrderBookTest, ExecuteTopOrderPartiallyConsumesOldestBeforeNextOrder) {
     ASSERT_TRUE(volume.has_value());
     EXPECT_EQ(*volume, 45);
 
-    EXPECT_TRUE(book.CancelOrder(1, Side::Sell, 101.00));
+    EXPECT_TRUE(book.CancelOrder(1));
     auto remaining = book.GetLevelVolume(Side::Sell, 101.00);
     ASSERT_TRUE(remaining.has_value());
     EXPECT_EQ(*remaining, 30);
@@ -182,4 +182,21 @@ TEST(OrderBookTest, ExecuteZeroQuantityLeavesVolumeUnchanged) {
     auto volume = book.GetLevelVolume(Side::Buy, 100.00);
     ASSERT_TRUE(volume.has_value());
     EXPECT_EQ(*volume, 20);
+}
+
+TEST(OrderBookTest, CancelOrderByIdRemovesAsk) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Sell, 101.50, 25, 1});
+
+    EXPECT_TRUE(book.CancelOrder(1));
+    EXPECT_EQ(book.AskLevelCount(), 0);
+    EXPECT_FALSE(book.GetBestAsk().has_value());
+}
+
+TEST(OrderBookTest, FullExecutionRemovesOrderFromIndex) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
+    EXPECT_FALSE(book.CancelOrder(1));
 }

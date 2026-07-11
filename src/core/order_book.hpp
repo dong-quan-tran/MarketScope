@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -11,10 +12,15 @@
 
 namespace bookforge {
 
+struct OrderLocation {
+    Side side {Side::Buy};
+    double price {0.0};
+};
+
 class OrderBook {
 public:
     void AddOrder(const Order& order);
-    bool CancelOrder(std::uint64_t order_id, Side side, double price);
+    bool CancelOrder(std::uint64_t order_id);
     bool ExecuteTopOrder(Side side, double price, std::uint32_t quantity);
 
     [[nodiscard]] std::optional<double> GetBestBid() const;
@@ -32,6 +38,7 @@ public:
 private:
     std::map<double, PriceLevel, std::greater<>> bids_;
     std::map<double, PriceLevel, std::less<>> asks_;
+    std::unordered_map<std::uint64_t, OrderLocation> order_index_;
 };
 
 }  // namespace bookforge
