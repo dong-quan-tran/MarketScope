@@ -139,3 +139,47 @@ TEST(OrderBookTest, ExecuteMissingLevelReturnsFalse) {
     OrderBook book;
     EXPECT_FALSE(book.ExecuteTopOrder(Side::Buy, 123.45, 10));
 }
+
+TEST(OrderBookTest, ExecuteTopOrderConsumesOldestOrderFirst) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
+    book.AddOrder(Order{2, Side::Buy, 100.00, 15, 2});
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
+
+    auto volume = book.GetLevelVolume(Side::Buy, 100.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 15);
+
+    EXPECT_FALSE(book.CancelOrder(1, Side::Buy, 100.00));
+    EXPECT_TRUE(book.CancelOrder(2, Side::Buy, 100.00));
+    EXPECT_FALSE(book.GetLevelVolume(Side::Buy, 100.00).has_value());
+}
+
+TEST(OrderBookTest, ExecuteTopOrderPartiallyConsumesOldestBeforeNextOrder) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Sell, 101.00, 20, 1});
+    book.AddOrder(Order{2, Side::Sell, 101.00, 30, 2});
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Sell, 101.00, 5));
+
+    auto volume = book.GetLevelVolume(Side::Sell, 101.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 45);
+
+    EXPECT_TRUE(book.CancelOrder(1, Side::Sell, 101.00));
+    auto remaining = book.GetLevelVolume(Side::Sell, 101.00);
+    ASSERT_TRUE(remaining.has_value());
+    EXPECT_EQ(*remaining, 30);
+}
+
+TEST(OrderBookTest, ExecuteZeroQuantityLeavesVolumeUnchanged) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Buy, 100.00, 20, 1});
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 0));
+
+    auto volume = book.GetLevelVolume(Side::Buy, 100.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 20);
+}
