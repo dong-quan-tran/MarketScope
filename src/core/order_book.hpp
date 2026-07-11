@@ -15,6 +15,7 @@ namespace bookforge {
 struct OrderLocation {
     Side side {Side::Buy};
     double price {0.0};
+    PriceLevel::Iterator order_it;
 };
 
 class OrderBook {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <deque>
+#include <list>
 #include <optional>
 
 #include "order.hpp"
@@ -10,10 +10,13 @@ namespace bookforge {
 
 class PriceLevel {
 public:
+    using OrderList = std::list<Order>;
+    using Iterator = OrderList::iterator;
+
     explicit PriceLevel(double price = 0.0);
 
-    void AddOrder(const Order& order);
-    bool RemoveOrder(std::uint64_t order_id);
+    Iterator AddOrder(const Order& order);
+    void RemoveOrder(Iterator it);
     std::optional<Order> PopFrontOrder();
     bool ReduceFrontOrder(std::uint32_t quantity);
 
@@ -25,7 +28,7 @@ public:
 
 private:
     double price_;
-    std::deque<Order> orders_;
+    OrderList orders_;
 };
 
 }  // namespace bookforge

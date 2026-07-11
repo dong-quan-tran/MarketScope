@@ -3,23 +3,25 @@
 namespace bookforge {
 
 void OrderBook::AddOrder(const Order& order) {
-    order_index_[order.id] = OrderLocation{order.side, order.price};
-
     if (order.side == Side::Buy) {
         auto it = bids_.find(order.price);
         if (it == bids_.end()) {
             auto [inserted_it, inserted] = bids_.emplace(order.price, PriceLevel(order.price));
-            inserted_it->second.AddOrder(order);
+            auto order_it = inserted_it->second.AddOrder(order);
+            order_index_[order.id] = OrderLocation{order.side, order.price, order_it};
         } else {
-            it->second.AddOrder(order);
+            auto order_it = it->second.AddOrder(order);
+            order_index_[order.id] = OrderLocation{order.side, order.price, order_it};
         }
     } else {
         auto it = asks_.find(order.price);
         if (it == asks_.end()) {
             auto [inserted_it, inserted] = asks_.emplace(order.price, PriceLevel(order.price));
-            inserted_it->second.AddOrder(order);
+            auto order_it = inserted_it->second.AddOrder(order);
+            order_index_[order.id] = OrderLocation{order.side, order.price, order_it};
         } else {
-            it->second.AddOrder(order);
+            auto order_it = it->second.AddOrder(order);
+            order_index_[order.id] = OrderLocation{order.side, order.price, order_it};
         }
     }
 }
@@ -32,6 +34,7 @@ bool OrderBook::CancelOrder(std::uint64_t order_id) {
 
     const auto side = index_it->second.side;
     const auto price = index_it->second.price;
+    const auto order_it = index_it->second.order_it;
 
     if (side == Side::Buy) {
         auto it = bids_.find(price);
@@ -39,10 +42,7 @@ bool OrderBook::CancelOrder(std::uint64_t order_id) {
             return false;
         }
 
-        bool removed = it->second.RemoveOrder(order_id);
-        if (!removed) {
-            return false;
-        }
+        it->second.RemoveOrder(order_it);
 
         if (it->second.Empty()) {
             bids_.erase(it);
@@ -57,10 +57,7 @@ bool OrderBook::CancelOrder(std::uint64_t order_id) {
         return false;
     }
 
-    bool removed = it->second.RemoveOrder(order_id);
-    if (!removed) {
-        return false;
-    }
+    it->second.RemoveOrder(order_it);
 
     if (it->second.Empty()) {
         asks_.erase(it);

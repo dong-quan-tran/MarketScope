@@ -1,23 +1,18 @@
 #include "price_level.hpp"
 
-#include <numeric>
-
 namespace bookforge {
 
 PriceLevel::PriceLevel(double price) : price_(price) {}
 
-void PriceLevel::AddOrder(const Order& order) {
+PriceLevel::Iterator PriceLevel::AddOrder(const Order& order) {
     orders_.push_back(order);
+    auto it = orders_.end();
+    --it;
+    return it;
 }
 
-bool PriceLevel::RemoveOrder(std::uint64_t order_id) {
-    for (auto it = orders_.begin(); it != orders_.end(); ++it) {
-        if (it->id == order_id) {
-            orders_.erase(it);
-            return true;
-        }
-    }
-    return false;
+void PriceLevel::RemoveOrder(Iterator it) {
+    orders_.erase(it);
 }
 
 std::optional<Order> PriceLevel::PopFrontOrder() {
