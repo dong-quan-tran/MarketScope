@@ -30,12 +30,12 @@ add_library(bookforge_core
   src/core/order_book.cpp
 )
 
-add_executable(test_order_book
-  tests/cpp/test_order_book.cpp
+target_include_directories(bookforge_core PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_include_directories(test_order_book PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+add_executable(test_order_book
+  tests/cpp/test_order_book.cpp
 )
 
 target_link_libraries(test_order_book PRIVATE
@@ -45,3 +45,11 @@ target_link_libraries(test_order_book PRIVATE
 
 include(GoogleTest)
 gtest_discover_tests(test_order_book)
+
+add_executable(benchmark_order_book
+  bench/benchmark_order_book.cpp
+)
+
+target_link_libraries(benchmark_order_book PRIVATE
+  bookforge_core
+)
