@@ -200,3 +200,43 @@ TEST(OrderBookTest, FullExecutionRemovesOrderFromIndex) {
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
     EXPECT_FALSE(book.CancelOrder(1));
 }
+
+TEST(OrderBookTest, BidDepthRequestLargerThanAvailableReturnsAllLevels) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Buy, 101.00, 10, 1});
+    book.AddOrder(Order{2, Side::Buy, 100.00, 20, 2});
+
+    auto depth = book.GetBidDepth(10);
+    ASSERT_EQ(depth.size(), 2);
+    EXPECT_DOUBLE_EQ(depth[0].first, 101.00);
+    EXPECT_EQ(depth[0].second, 10);
+    EXPECT_DOUBLE_EQ(depth[1].first, 100.00);
+    EXPECT_EQ(depth[1].second, 20);
+}
+
+TEST(OrderBookTest, AskDepthRequestLargerThanAvailableReturnsAllLevels) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Sell, 100.50, 10, 1});
+    book.AddOrder(Order{2, Side::Sell, 101.50, 20, 2});
+
+    auto depth = book.GetAskDepth(10);
+    ASSERT_EQ(depth.size(), 2);
+    EXPECT_DOUBLE_EQ(depth[0].first, 100.50);
+    EXPECT_EQ(depth[0].second, 10);
+    EXPECT_DOUBLE_EQ(depth[1].first, 101.50);
+    EXPECT_EQ(depth[1].second, 20);
+}
+
+TEST(OrderBookTest, MidPriceUnavailableWhenOnlyBidExists) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
+
+    EXPECT_FALSE(book.GetMidPrice().has_value());
+}
+
+TEST(OrderBookTest, SpreadUnavailableWhenOnlyAskExists) {
+    OrderBook book;
+    book.AddOrder(Order{1, Side::Sell, 100.50, 10, 1});
+
+    EXPECT_FALSE(book.GetSpread().has_value());
+}
