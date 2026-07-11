@@ -1,5 +1,7 @@
 #include "price_level.hpp"
 
+#include <numeric>
+
 namespace bookforge {
 
 PriceLevel::PriceLevel(double price) : price_(price) {}
@@ -46,7 +48,6 @@ std::optional<Order> PriceLevel::FrontOrder() const {
     if (orders_.empty()) {
         return std::nullopt;
     }
-
     return orders_.front();
 }
 

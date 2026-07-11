@@ -6,38 +6,56 @@ void OrderBook::AddOrder(const Order& order) {
     if (order.side == Side::Buy) {
         auto it = bids_.find(order.price);
         if (it == bids_.end()) {
-            it = bids_.emplace(order.price, PriceLevel(order.price)).first;
+            auto [inserted_it, inserted] = bids_.emplace(order.price, PriceLevel(order.price));
+            inserted_it->second.AddOrder(order);
+        } else {
+            it->second.AddOrder(order);
         }
-        it->second.AddOrder(order);
     } else {
         auto it = asks_.find(order.price);
         if (it == asks_.end()) {
-            it = asks_.emplace(order.price, PriceLevel(order.price)).first;
+            auto [inserted_it, inserted] = asks_.emplace(order.price, PriceLevel(order.price));
+            inserted_it->second.AddOrder(order);
+        } else {
+            it->second.AddOrder(order);
         }
-        it->second.AddOrder(order);
     }
 }
 
 bool OrderBook::CancelOrder(std::uint64_t order_id, Side side, double price) {
     if (side == Side::Buy) {
         auto it = bids_.find(price);
-        if (it == bids_.end()) return false;
+        if (it == bids_.end()) {
+            return false;
+        }
 
-        const bool removed = it->second.RemoveOrder(order_id);
+        bool removed = it->second.RemoveOrder(order_id);
+        if (!removed) {
+            return false;
+        }
+
         if (it->second.Empty()) {
             bids_.erase(it);
         }
-        return removed;
+
+        return true;
     }
 
     auto it = asks_.find(price);
-    if (it == asks_.end()) return false;
+    if (it == asks_.end()) {
+        return false;
+    }
 
-    const bool removed = it->second.RemoveOrder(order_id);
+    bool removed = it->second.RemoveOrder(order_id);
+    if (!removed) {
+        return false;
+    }
+
     if (it->second.Empty()) {
         asks_.erase(it);
     }
-    return removed;
+
+    return true;
 }
 
 bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity) {
@@ -47,7 +65,7 @@ bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity)
             return false;
         }
 
-        const bool ok = it->second.ReduceFrontOrder(quantity);
+        bool ok = it->second.ReduceFrontOrder(quantity);
         if (!ok) {
             return false;
         }
@@ -64,7 +82,7 @@ bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity)
         return false;
     }
 
-    const bool ok = it->second.ReduceFrontOrder(quantity);
+    bool ok = it->second.ReduceFrontOrder(quantity);
     if (!ok) {
         return false;
     }
@@ -77,18 +95,22 @@ bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity)
 }
 
 std::optional<double> OrderBook::GetBestBid() const {
-    if (bids_.empty()) return std::nullopt;
+    if (bids_.empty()) {
+        return std::nullopt;
+    }
     return bids_.begin()->first;
 }
 
 std::optional<double> OrderBook::GetBestAsk() const {
-    if (asks_.empty()) return std::nullopt;
+    if (asks_.empty()) {
+        return std::nullopt;
+    }
     return asks_.begin()->first;
 }
 
 std::optional<double> OrderBook::GetMidPrice() const {
-    const auto best_bid = GetBestBid();
-    const auto best_ask = GetBestAsk();
+    auto best_bid = GetBestBid();
+    auto best_ask = GetBestAsk();
 
     if (!best_bid.has_value() || !best_ask.has_value()) {
         return std::nullopt;
@@ -98,8 +120,8 @@ std::optional<double> OrderBook::GetMidPrice() const {
 }
 
 std::optional<double> OrderBook::GetSpread() const {
-    const auto best_bid = GetBestBid();
-    const auto best_ask = GetBestAsk();
+    auto best_bid = GetBestBid();
+    auto best_ask = GetBestAsk();
 
     if (!best_bid.has_value() || !best_ask.has_value()) {
         return std::nullopt;
@@ -119,12 +141,17 @@ std::size_t OrderBook::AskLevelCount() const {
 std::optional<std::uint32_t> OrderBook::GetLevelVolume(Side side, double price) const {
     if (side == Side::Buy) {
         auto it = bids_.find(price);
-        if (it == bids_.end()) return std::nullopt;
+        if (it == bids_.end()) {
+            return std::nullopt;
+        }
         return it->second.TotalVolume();
     }
 
     auto it = asks_.find(price);
-    if (it == asks_.end()) return std::nullopt;
+    if (it == asks_.end()) {
+        return std::nullopt;
+    }
+
     return it->second.TotalVolume();
 }
 
@@ -132,9 +159,13 @@ std::vector<std::pair<double, std::uint32_t>> OrderBook::GetBidDepth(std::size_t
     std::vector<std::pair<double, std::uint32_t>> depth;
     depth.reserve(levels);
 
+    std::size_t count = 0;
     for (const auto& [price, level] : bids_) {
-        if (depth.size() >= levels) break;
+        if (count >= levels) {
+            break;
+        }
         depth.emplace_back(price, level.TotalVolume());
+        ++count;
     }
 
     return depth;
@@ -144,9 +175,13 @@ std::vector<std::pair<double, std::uint32_t>> OrderBook::GetAskDepth(std::size_t
     std::vector<std::pair<double, std::uint32_t>> depth;
     depth.reserve(levels);
 
+    std::size_t count = 0;
     for (const auto& [price, level] : asks_) {
-        if (depth.size() >= levels) break;
+        if (count >= levels) {
+            break;
+        }
         depth.emplace_back(price, level.TotalVolume());
+        ++count;
     }
 
     return depth;
