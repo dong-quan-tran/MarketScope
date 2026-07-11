@@ -20,7 +20,7 @@ struct OrderLocation {
 
 class OrderBook {
 public:
-    void AddOrder(const Order& order);
+    bool AddOrder(const Order& order);
     bool CancelOrder(std::uint64_t order_id);
     bool ExecuteTopOrder(Side side, double price, std::uint32_t quantity);
 

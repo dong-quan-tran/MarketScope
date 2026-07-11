@@ -17,7 +17,7 @@ TEST(OrderBookTest, AddSingleBid) {
     OrderBook book;
     Order order{1, Side::Buy, 100.25, 10, 1};
 
-    book.AddOrder(order);
+    EXPECT_TRUE(book.AddOrder(order));
 
     ASSERT_TRUE(book.GetBestBid().has_value());
     EXPECT_DOUBLE_EQ(*book.GetBestBid(), 100.25);
@@ -26,8 +26,8 @@ TEST(OrderBookTest, AddSingleBid) {
 
 TEST(OrderBookTest, AddBidAndAskComputesMidAndSpread) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
-    book.AddOrder(Order{2, Side::Sell, 100.50, 12, 2});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Sell, 100.50, 12, 2}));
 
     ASSERT_TRUE(book.GetBestBid().has_value());
     ASSERT_TRUE(book.GetBestAsk().has_value());
@@ -42,7 +42,7 @@ TEST(OrderBookTest, AddBidAndAskComputesMidAndSpread) {
 
 TEST(OrderBookTest, CancelOrderRemovesLevelWhenEmpty) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 99.50, 20, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 99.50, 20, 1}));
 
     EXPECT_TRUE(book.CancelOrder(1));
     EXPECT_EQ(book.BidLevelCount(), 0);
@@ -51,8 +51,8 @@ TEST(OrderBookTest, CancelOrderRemovesLevelWhenEmpty) {
 
 TEST(OrderBookTest, MultipleOrdersSameLevelAggregateVolume) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
-    book.AddOrder(Order{2, Side::Buy, 100.00, 15, 2});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 100.00, 15, 2}));
 
     auto volume = book.GetLevelVolume(Side::Buy, 100.00);
     ASSERT_TRUE(volume.has_value());
@@ -61,9 +61,9 @@ TEST(OrderBookTest, MultipleOrdersSameLevelAggregateVolume) {
 
 TEST(OrderBookTest, BestBidTracksHighestPrice) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 99.00, 10, 1});
-    book.AddOrder(Order{2, Side::Buy, 101.00, 10, 2});
-    book.AddOrder(Order{3, Side::Buy, 100.00, 10, 3});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 99.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 101.00, 10, 2}));
+    EXPECT_TRUE(book.AddOrder(Order{3, Side::Buy, 100.00, 10, 3}));
 
     ASSERT_TRUE(book.GetBestBid().has_value());
     EXPECT_DOUBLE_EQ(*book.GetBestBid(), 101.00);
@@ -71,9 +71,9 @@ TEST(OrderBookTest, BestBidTracksHighestPrice) {
 
 TEST(OrderBookTest, BestAskTracksLowestPrice) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 102.00, 10, 1});
-    book.AddOrder(Order{2, Side::Sell, 100.50, 10, 2});
-    book.AddOrder(Order{3, Side::Sell, 101.00, 10, 3});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 102.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Sell, 100.50, 10, 2}));
+    EXPECT_TRUE(book.AddOrder(Order{3, Side::Sell, 101.00, 10, 3}));
 
     ASSERT_TRUE(book.GetBestAsk().has_value());
     EXPECT_DOUBLE_EQ(*book.GetBestAsk(), 100.50);
@@ -81,9 +81,9 @@ TEST(OrderBookTest, BestAskTracksLowestPrice) {
 
 TEST(OrderBookTest, BidDepthReturnsSortedLevels) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 99.00, 10, 1});
-    book.AddOrder(Order{2, Side::Buy, 101.00, 20, 2});
-    book.AddOrder(Order{3, Side::Buy, 100.00, 30, 3});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 99.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 101.00, 20, 2}));
+    EXPECT_TRUE(book.AddOrder(Order{3, Side::Buy, 100.00, 30, 3}));
 
     auto depth = book.GetBidDepth(2);
     ASSERT_EQ(depth.size(), 2);
@@ -95,9 +95,9 @@ TEST(OrderBookTest, BidDepthReturnsSortedLevels) {
 
 TEST(OrderBookTest, AskDepthReturnsSortedLevels) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 102.00, 10, 1});
-    book.AddOrder(Order{2, Side::Sell, 100.50, 20, 2});
-    book.AddOrder(Order{3, Side::Sell, 101.00, 30, 3});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 102.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Sell, 100.50, 20, 2}));
+    EXPECT_TRUE(book.AddOrder(Order{3, Side::Sell, 101.00, 30, 3}));
 
     auto depth = book.GetAskDepth(2);
     ASSERT_EQ(depth.size(), 2);
@@ -109,7 +109,7 @@ TEST(OrderBookTest, AskDepthReturnsSortedLevels) {
 
 TEST(OrderBookTest, PartialExecutionReducesFrontOrderVolume) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 20, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 20, 1}));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 5));
 
@@ -120,7 +120,7 @@ TEST(OrderBookTest, PartialExecutionReducesFrontOrderVolume) {
 
 TEST(OrderBookTest, FullExecutionRemovesPriceLevel) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 101.00, 20, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 101.00, 20, 1}));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Sell, 101.00, 20));
 
@@ -130,7 +130,7 @@ TEST(OrderBookTest, FullExecutionRemovesPriceLevel) {
 
 TEST(OrderBookTest, CancelMissingOrderReturnsFalse) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
 
     EXPECT_FALSE(book.CancelOrder(999));
 }
@@ -142,8 +142,8 @@ TEST(OrderBookTest, ExecuteMissingLevelReturnsFalse) {
 
 TEST(OrderBookTest, ExecuteTopOrderConsumesOldestOrderFirst) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
-    book.AddOrder(Order{2, Side::Buy, 100.00, 15, 2});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 100.00, 15, 2}));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
 
@@ -158,8 +158,8 @@ TEST(OrderBookTest, ExecuteTopOrderConsumesOldestOrderFirst) {
 
 TEST(OrderBookTest, ExecuteTopOrderPartiallyConsumesOldestBeforeNextOrder) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 101.00, 20, 1});
-    book.AddOrder(Order{2, Side::Sell, 101.00, 30, 2});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 101.00, 20, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Sell, 101.00, 30, 2}));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Sell, 101.00, 5));
 
@@ -175,7 +175,7 @@ TEST(OrderBookTest, ExecuteTopOrderPartiallyConsumesOldestBeforeNextOrder) {
 
 TEST(OrderBookTest, ExecuteZeroQuantityLeavesVolumeUnchanged) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 20, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 20, 1}));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 0));
 
@@ -186,7 +186,7 @@ TEST(OrderBookTest, ExecuteZeroQuantityLeavesVolumeUnchanged) {
 
 TEST(OrderBookTest, CancelOrderByIdRemovesAsk) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 101.50, 25, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 101.50, 25, 1}));
 
     EXPECT_TRUE(book.CancelOrder(1));
     EXPECT_EQ(book.AskLevelCount(), 0);
@@ -195,7 +195,7 @@ TEST(OrderBookTest, CancelOrderByIdRemovesAsk) {
 
 TEST(OrderBookTest, FullExecutionRemovesOrderFromIndex) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
     EXPECT_FALSE(book.CancelOrder(1));
@@ -203,8 +203,8 @@ TEST(OrderBookTest, FullExecutionRemovesOrderFromIndex) {
 
 TEST(OrderBookTest, BidDepthRequestLargerThanAvailableReturnsAllLevels) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 101.00, 10, 1});
-    book.AddOrder(Order{2, Side::Buy, 100.00, 20, 2});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 101.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 100.00, 20, 2}));
 
     auto depth = book.GetBidDepth(10);
     ASSERT_EQ(depth.size(), 2);
@@ -216,8 +216,8 @@ TEST(OrderBookTest, BidDepthRequestLargerThanAvailableReturnsAllLevels) {
 
 TEST(OrderBookTest, AskDepthRequestLargerThanAvailableReturnsAllLevels) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 100.50, 10, 1});
-    book.AddOrder(Order{2, Side::Sell, 101.50, 20, 2});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 100.50, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Sell, 101.50, 20, 2}));
 
     auto depth = book.GetAskDepth(10);
     ASSERT_EQ(depth.size(), 2);
@@ -229,14 +229,38 @@ TEST(OrderBookTest, AskDepthRequestLargerThanAvailableReturnsAllLevels) {
 
 TEST(OrderBookTest, MidPriceUnavailableWhenOnlyBidExists) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
 
     EXPECT_FALSE(book.GetMidPrice().has_value());
 }
 
 TEST(OrderBookTest, SpreadUnavailableWhenOnlyAskExists) {
     OrderBook book;
-    book.AddOrder(Order{1, Side::Sell, 100.50, 10, 1});
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Sell, 100.50, 10, 1}));
 
     EXPECT_FALSE(book.GetSpread().has_value());
+}
+
+TEST(OrderBookTest, AddDuplicateOrderIdReturnsFalse) {
+    OrderBook book;
+
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_FALSE(book.AddOrder(Order{1, Side::Sell, 100.50, 20, 2}));
+}
+
+TEST(OrderBookTest, DuplicateOrderIdDoesNotChangeBookState) {
+    OrderBook book;
+
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_FALSE(book.AddOrder(Order{1, Side::Buy, 101.00, 20, 2}));
+
+    ASSERT_TRUE(book.GetBestBid().has_value());
+    EXPECT_DOUBLE_EQ(*book.GetBestBid(), 100.00);
+    EXPECT_EQ(book.BidLevelCount(), 1);
+
+    auto volume = book.GetLevelVolume(Side::Buy, 100.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 10);
+
+    EXPECT_FALSE(book.GetLevelVolume(Side::Buy, 101.00).has_value());
 }

@@ -2,7 +2,11 @@
 
 namespace bookforge {
 
-void OrderBook::AddOrder(const Order& order) {
+bool OrderBook::AddOrder(const Order& order) {
+    if (order_index_.find(order.id) != order_index_.end()) {
+        return false;
+    }
+
     if (order.side == Side::Buy) {
         auto it = bids_.find(order.price);
         if (it == bids_.end()) {
@@ -24,6 +28,8 @@ void OrderBook::AddOrder(const Order& order) {
             order_index_[order.id] = OrderLocation{order.side, order.price, order_it};
         }
     }
+
+    return true;
 }
 
 bool OrderBook::CancelOrder(std::uint64_t order_id) {
