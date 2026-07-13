@@ -39,23 +39,33 @@ MatchResult MatchingEngine::MatchLimitOrder(const Order& incoming) {
             if (!maker.has_value()) {
                 break;
             }
-            if (incoming.stp == SelfTradePrevention::CancelNewest &&
-                incoming.participant_id != 0 &&
+
+            if (incoming.participant_id != 0 &&
                 incoming.participant_id == maker->participant_id) {
-                result.remaining_quantity = incoming.quantity;
-                return result;
+                if (incoming.stp == SelfTradePrevention::CancelNewest) {
+                    result.remaining_quantity = incoming.quantity;
+                    return result;
+                }
+
+                if (incoming.stp == SelfTradePrevention::CancelOldest) {
+                    bool canceled = book_.CancelOrder(maker->id);
+                    if (!canceled) {
+                        break;
+                    }
+                    continue;
+                }
             }
+
             const std::uint32_t executed_qty =
                 remaining <= maker->quantity ? remaining : maker->quantity;
 
-            Trade trade{
+            result.trades.push_back(Trade{
                 incoming.id,
                 maker->id,
                 Side::Buy,
                 maker->price,
                 executed_qty
-            };
-            result.trades.push_back(trade);
+            });
 
             bool ok = book_.ExecuteTopOrder(Side::Sell, maker->price, executed_qty);
             if (!ok) {
@@ -69,24 +79,32 @@ MatchResult MatchingEngine::MatchLimitOrder(const Order& incoming) {
                 break;
             }
 
-            if (incoming.stp == SelfTradePrevention::CancelNewest &&
-                incoming.participant_id != 0 &&
+            if (incoming.participant_id != 0 &&
                 incoming.participant_id == maker->participant_id) {
-                result.remaining_quantity = incoming.quantity;
-                return result;
+                if (incoming.stp == SelfTradePrevention::CancelNewest) {
+                    result.remaining_quantity = incoming.quantity;
+                    return result;
+                }
+
+                if (incoming.stp == SelfTradePrevention::CancelOldest) {
+                    bool canceled = book_.CancelOrder(maker->id);
+                    if (!canceled) {
+                        break;
+                    }
+                    continue;
+                }
             }
-            
+
             const std::uint32_t executed_qty =
                 remaining <= maker->quantity ? remaining : maker->quantity;
 
-            Trade trade{
+            result.trades.push_back(Trade{
                 incoming.id,
                 maker->id,
                 Side::Sell,
                 maker->price,
                 executed_qty
-            };
-            result.trades.push_back(trade);
+            });
 
             bool ok = book_.ExecuteTopOrder(Side::Buy, maker->price, executed_qty);
             if (!ok) {
@@ -95,15 +113,6 @@ MatchResult MatchingEngine::MatchLimitOrder(const Order& incoming) {
 
             remaining -= executed_qty;
         }
-    }
-
-    if (result.trades.empty()) {
-        if (book_.AddOrder(incoming)) {
-            result.remaining_quantity = 0;
-        } else {
-            result.remaining_quantity = incoming.quantity;
-        }
-        return result;
     }
 
     if (remaining > 0) {

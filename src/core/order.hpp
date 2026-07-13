@@ -9,9 +9,10 @@ enum class Side : std::uint8_t {
     Sell = 1
 };
 
-enum class SelfTradePrevention : std::uint8_t {
-    None = 0,
-    CancelNewest = 1
+enum class SelfTradePrevention {
+    None,
+    CancelNewest,
+    CancelOldest
 };
 
 struct Order {
