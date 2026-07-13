@@ -42,6 +42,9 @@ public:
     [[nodiscard]] std::vector<std::pair<double, std::uint32_t>> GetBidDepth(std::size_t levels) const;
     [[nodiscard]] std::vector<std::pair<double, std::uint32_t>> GetAskDepth(std::size_t levels) const;
 
+    [[nodiscard]] std::optional<Order> PeekBestBidOrder() const;
+    [[nodiscard]] std::optional<Order> PeekBestAskOrder() const;
+
 private:
     std::map<double, PriceLevel, std::greater<>> bids_;
     std::map<double, PriceLevel, std::less<>> asks_;

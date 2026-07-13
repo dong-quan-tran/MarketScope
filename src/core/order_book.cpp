@@ -243,6 +243,20 @@ std::optional<double> OrderBook::GetSpread() const {
     return *best_ask - *best_bid;
 }
 
+std::optional<Order> OrderBook::PeekBestBidOrder() const {
+    if (bids_.empty()) {
+        return std::nullopt;
+    }
+    return bids_.begin()->second.FrontOrder();
+}
+
+std::optional<Order> OrderBook::PeekBestAskOrder() const {
+    if (asks_.empty()) {
+        return std::nullopt;
+    }
+    return asks_.begin()->second.FrontOrder();
+}
+
 std::size_t OrderBook::BidLevelCount() const {
     return bids_.size();
 }

@@ -35,52 +35,48 @@ MatchResult MatchingEngine::MatchLimitOrder(const Order& incoming) {
         }
 
         if (incoming.side == Side::Buy) {
-            const double match_price = *best_ask;
-
-            auto level_volume = book_.GetLevelVolume(Side::Sell, match_price);
-            if (!level_volume.has_value()) {
+            auto maker = book_.PeekBestAskOrder();
+            if (!maker.has_value()) {
                 break;
             }
 
             const std::uint32_t executed_qty =
-                remaining <= *level_volume ? remaining : *level_volume;
+                remaining <= maker->quantity ? remaining : maker->quantity;
 
             Trade trade{
                 incoming.id,
-                0,
+                maker->id,
                 Side::Buy,
-                match_price,
+                maker->price,
                 executed_qty
             };
             result.trades.push_back(trade);
 
-            bool ok = book_.ExecuteTopOrder(Side::Sell, match_price, executed_qty);
+            bool ok = book_.ExecuteTopOrder(Side::Sell, maker->price, executed_qty);
             if (!ok) {
                 break;
             }
 
             remaining -= executed_qty;
         } else {
-            const double match_price = *best_bid;
-
-            auto level_volume = book_.GetLevelVolume(Side::Buy, match_price);
-            if (!level_volume.has_value()) {
+            auto maker = book_.PeekBestBidOrder();
+            if (!maker.has_value()) {
                 break;
             }
 
             const std::uint32_t executed_qty =
-                remaining <= *level_volume ? remaining : *level_volume;
+                remaining <= maker->quantity ? remaining : maker->quantity;
 
             Trade trade{
                 incoming.id,
-                0,
+                maker->id,
                 Side::Sell,
-                match_price,
+                maker->price,
                 executed_qty
             };
             result.trades.push_back(trade);
 
-            bool ok = book_.ExecuteTopOrder(Side::Buy, match_price, executed_qty);
+            bool ok = book_.ExecuteTopOrder(Side::Buy, maker->price, executed_qty);
             if (!ok) {
                 break;
             }
