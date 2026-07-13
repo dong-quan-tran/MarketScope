@@ -85,6 +85,12 @@ Example template:
 - CancelOrder: `... ns/op`
 - ExecuteTopOrder: `... ns/op`
 
+Bookforge OrderBook benchmark
+iterations=100000
+AddOrder: total_ns=111230700, avg_ns=1112
+CancelOrder: total_ns=4831089700, avg_ns=48310
+ExecuteTopOrder: total_ns=73795936200, avg_ns=737959
+
 ## Next steps
 
 - Reject duplicate order ids on insert.
