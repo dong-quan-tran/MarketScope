@@ -368,3 +368,75 @@ TEST(MatchingEngineTest, CancelNewestOnSellPreventsSelfMatchAgainstBestBid) {
     ASSERT_TRUE(best_bid.has_value());
     EXPECT_DOUBLE_EQ(*best_bid, 100.00);
 }
+
+TEST(MatchingEngineTest, CancelOldestRemovesOwnRestingOrderAndContinues) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        MakeOrder(1, 42, Side::Sell, 100.50, 5, 1)));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        MakeOrder(2, 7, Side::Sell, 100.75, 5, 2)));
+
+    Order incoming = MakeOrder(3, 42, Side::Buy, 101.00, 5, 3,
+                               SelfTradePrevention::CancelOldest);
+    auto result = engine.MatchLimitOrder(incoming);
+
+    ASSERT_EQ(result.trades.size(), 1u);
+    EXPECT_EQ(result.trades[0].taker_order_id, 3u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 2u);
+    EXPECT_EQ(result.trades[0].side, Side::Buy);
+    EXPECT_DOUBLE_EQ(result.trades[0].price, 100.75);
+    EXPECT_EQ(result.trades[0].quantity, 5u);
+
+    EXPECT_FALSE(engine.Book().GetLevelVolume(Side::Sell, 100.50).has_value());
+    EXPECT_FALSE(engine.Book().GetLevelVolume(Side::Sell, 100.75).has_value());
+    EXPECT_EQ(result.remaining_quantity, 0u);
+}
+
+TEST(MatchingEngineTest, CancelOldestOnSellRemovesOwnBestBidAndContinues) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        MakeOrder(1, 42, Side::Buy, 100.00, 5, 1)));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        MakeOrder(2, 7, Side::Buy, 99.75, 5, 2)));
+
+    Order incoming = MakeOrder(3, 42, Side::Sell, 99.50, 5, 3,
+                               SelfTradePrevention::CancelOldest);
+    auto result = engine.MatchLimitOrder(incoming);
+
+    ASSERT_EQ(result.trades.size(), 1u);
+    EXPECT_EQ(result.trades[0].taker_order_id, 3u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 2u);
+    EXPECT_EQ(result.trades[0].side, Side::Sell);
+    EXPECT_DOUBLE_EQ(result.trades[0].price, 99.75);
+    EXPECT_EQ(result.trades[0].quantity, 5u);
+
+    EXPECT_FALSE(engine.Book().GetLevelVolume(Side::Buy, 100.00).has_value());
+    EXPECT_FALSE(engine.Book().GetLevelVolume(Side::Buy, 99.75).has_value());
+    EXPECT_EQ(result.remaining_quantity, 0u);
+}
+
+TEST(MatchingEngineTest, CancelOldestCancelsOnlyRestingSelfOrderWhenNoOtherLiquidityExists) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        MakeOrder(1, 42, Side::Sell, 100.50, 5, 1)));
+
+    Order incoming = MakeOrder(2, 42, Side::Buy, 101.00, 5, 2,
+                               SelfTradePrevention::CancelOldest);
+    auto result = engine.MatchLimitOrder(incoming);
+
+    EXPECT_TRUE(result.trades.empty());
+    EXPECT_EQ(result.remaining_quantity, 0u);
+
+    auto best_bid = engine.Book().GetBestBid();
+    ASSERT_TRUE(best_bid.has_value());
+    EXPECT_DOUBLE_EQ(*best_bid, 101.00);
+
+    auto volume = engine.Book().GetLevelVolume(Side::Buy, 101.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 5u);
+
+    EXPECT_FALSE(engine.Book().GetBestAsk().has_value());
+}
