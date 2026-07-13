@@ -7,7 +7,7 @@ using namespace bookforge;
 TEST(MatchingEngineTest, NonCrossingLimitOrderRestsInBook) {
     MatchingEngine engine;
 
-    Order buy{1, Side::Buy, 100.00, 10, 1};
+    Order buy{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(buy);
     EXPECT_TRUE(result.trades.empty());
@@ -21,22 +21,21 @@ TEST(MatchingEngineTest, NonCrossingLimitOrderRestsInBook) {
 TEST(MatchingEngineTest, CrossingBuyMatchesBestAskAtOrBetterPrice) {
     MatchingEngine engine;
 
-    // Seed book with resting ask.
-    EXPECT_TRUE(engine.Book().AddOrder(Order{1, Side::Sell, 100.50, 10, 1}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 1, Side::Sell, 100.50, 10, 1, SelfTradePrevention::None}));
 
-    // Incoming buy crosses the ask.
-    Order incoming{2, Side::Buy, 101.00, 5, 2};
+    Order incoming{2, 2, Side::Buy, 101.00, 5, 2, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 1u);
     const auto& trade = result.trades[0];
     EXPECT_EQ(trade.taker_order_id, 2u);
+    EXPECT_EQ(trade.maker_order_id, 1u);
     EXPECT_EQ(trade.side, Side::Buy);
     EXPECT_DOUBLE_EQ(trade.price, 100.50);
     EXPECT_EQ(trade.quantity, 5u);
 
-    // Remaining ask volume should be reduced.
     auto volume = engine.Book().GetLevelVolume(Side::Sell, 100.50);
     ASSERT_TRUE(volume.has_value());
     EXPECT_EQ(*volume, 5u);
@@ -45,15 +44,17 @@ TEST(MatchingEngineTest, CrossingBuyMatchesBestAskAtOrBetterPrice) {
 TEST(MatchingEngineTest, CrossingSellMatchesBestBidAtOrBetterPrice) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
 
-    Order incoming{2, Side::Sell, 99.50, 4, 2};
+    Order incoming{2, 2, Side::Sell, 99.50, 4, 2, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 1u);
     const auto& trade = result.trades[0];
     EXPECT_EQ(trade.taker_order_id, 2u);
+    EXPECT_EQ(trade.maker_order_id, 1u);
     EXPECT_EQ(trade.side, Side::Sell);
     EXPECT_DOUBLE_EQ(trade.price, 100.00);
     EXPECT_EQ(trade.quantity, 4u);
@@ -66,16 +67,17 @@ TEST(MatchingEngineTest, CrossingSellMatchesBestBidAtOrBetterPrice) {
 TEST(MatchingEngineTest, CrossingBuyPartiallyFillsAndRestsRemainder) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{1, Side::Sell, 100.50, 5, 1}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 1, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
 
-    Order incoming{2, Side::Buy, 101.00, 10, 2};
+    Order incoming{2, 2, Side::Buy, 101.00, 10, 2, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 1u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 1u);
     EXPECT_EQ(result.trades[0].quantity, 5u);
 
-    // After matching 5, we should have resting quantity (implementation-dependent).
     auto best_bid = engine.Book().GetBestBid();
     ASSERT_TRUE(best_bid.has_value());
     EXPECT_DOUBLE_EQ(*best_bid, 101.00);
@@ -88,21 +90,25 @@ TEST(MatchingEngineTest, CrossingBuyPartiallyFillsAndRestsRemainder) {
 TEST(MatchingEngineTest, CrossingBuyMatchesAcrossMultipleAskLevels) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{1, Side::Sell, 100.50, 5, 1}));
-    EXPECT_TRUE(engine.Book().AddOrder(Order{2, Side::Sell, 100.75, 4, 2}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 1, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{2, 2, Side::Sell, 100.75, 4, 2, SelfTradePrevention::None}));
 
-    Order incoming{3, Side::Buy, 101.00, 8, 3};
+    Order incoming{3, 3, Side::Buy, 101.00, 8, 3, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 2u);
 
     EXPECT_EQ(result.trades[0].taker_order_id, 3u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 1u);
     EXPECT_EQ(result.trades[0].side, Side::Buy);
     EXPECT_DOUBLE_EQ(result.trades[0].price, 100.50);
     EXPECT_EQ(result.trades[0].quantity, 5u);
 
     EXPECT_EQ(result.trades[1].taker_order_id, 3u);
+    EXPECT_EQ(result.trades[1].maker_order_id, 2u);
     EXPECT_EQ(result.trades[1].side, Side::Buy);
     EXPECT_DOUBLE_EQ(result.trades[1].price, 100.75);
     EXPECT_EQ(result.trades[1].quantity, 3u);
@@ -117,21 +123,25 @@ TEST(MatchingEngineTest, CrossingBuyMatchesAcrossMultipleAskLevels) {
 TEST(MatchingEngineTest, CrossingSellMatchesAcrossMultipleBidLevels) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{1, Side::Buy, 100.00, 5, 1}));
-    EXPECT_TRUE(engine.Book().AddOrder(Order{2, Side::Buy, 99.75, 4, 2}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 1, Side::Buy, 100.00, 5, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{2, 2, Side::Buy, 99.75, 4, 2, SelfTradePrevention::None}));
 
-    Order incoming{3, Side::Sell, 99.50, 8, 3};
+    Order incoming{3, 3, Side::Sell, 99.50, 8, 3, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 2u);
 
     EXPECT_EQ(result.trades[0].taker_order_id, 3u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 1u);
     EXPECT_EQ(result.trades[0].side, Side::Sell);
     EXPECT_DOUBLE_EQ(result.trades[0].price, 100.00);
     EXPECT_EQ(result.trades[0].quantity, 5u);
 
     EXPECT_EQ(result.trades[1].taker_order_id, 3u);
+    EXPECT_EQ(result.trades[1].maker_order_id, 2u);
     EXPECT_EQ(result.trades[1].side, Side::Sell);
     EXPECT_DOUBLE_EQ(result.trades[1].price, 99.75);
     EXPECT_EQ(result.trades[1].quantity, 3u);
@@ -146,16 +156,20 @@ TEST(MatchingEngineTest, CrossingSellMatchesAcrossMultipleBidLevels) {
 TEST(MatchingEngineTest, ResidualBuyRestsAfterExhaustingMarketableAskLevels) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{1, Side::Sell, 100.50, 5, 1}));
-    EXPECT_TRUE(engine.Book().AddOrder(Order{2, Side::Sell, 100.75, 4, 2}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 1, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{2, 2, Side::Sell, 100.75, 4, 2, SelfTradePrevention::None}));
 
-    Order incoming{3, Side::Buy, 100.75, 12, 3};
+    Order incoming{3, 3, Side::Buy, 100.75, 12, 3, SelfTradePrevention::None};
 
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 2u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 1u);
     EXPECT_DOUBLE_EQ(result.trades[0].price, 100.50);
     EXPECT_EQ(result.trades[0].quantity, 5u);
+    EXPECT_EQ(result.trades[1].maker_order_id, 2u);
     EXPECT_DOUBLE_EQ(result.trades[1].price, 100.75);
     EXPECT_EQ(result.trades[1].quantity, 4u);
 
@@ -169,9 +183,10 @@ TEST(MatchingEngineTest, ResidualBuyRestsAfterExhaustingMarketableAskLevels) {
 TEST(MatchingEngineTest, TradeReportsMakerOrderIdForSingleFill) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{10, Side::Sell, 100.50, 5, 1}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{10, 10, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
 
-    Order incoming{20, Side::Buy, 101.00, 5, 2};
+    Order incoming{20, 20, Side::Buy, 101.00, 5, 2, SelfTradePrevention::None};
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 1u);
@@ -185,10 +200,12 @@ TEST(MatchingEngineTest, TradeReportsMakerOrderIdForSingleFill) {
 TEST(MatchingEngineTest, TradeReportsMultipleMakerOrderIdsAtSamePriceLevel) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{10, Side::Sell, 100.50, 5, 1}));
-    EXPECT_TRUE(engine.Book().AddOrder(Order{11, Side::Sell, 100.50, 4, 2}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{10, 10, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{11, 11, Side::Sell, 100.50, 4, 2, SelfTradePrevention::None}));
 
-    Order incoming{20, Side::Buy, 101.00, 8, 3};
+    Order incoming{20, 20, Side::Buy, 101.00, 8, 3, SelfTradePrevention::None};
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 2u);
@@ -209,10 +226,12 @@ TEST(MatchingEngineTest, TradeReportsMultipleMakerOrderIdsAtSamePriceLevel) {
 TEST(MatchingEngineTest, TradeReportsMakerOrderIdsAcrossMultipleLevels) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{10, Side::Sell, 100.50, 5, 1}));
-    EXPECT_TRUE(engine.Book().AddOrder(Order{11, Side::Sell, 100.75, 4, 2}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{10, 10, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{11, 11, Side::Sell, 100.75, 4, 2, SelfTradePrevention::None}));
 
-    Order incoming{20, Side::Buy, 101.00, 8, 3};
+    Order incoming{20, 20, Side::Buy, 101.00, 8, 3, SelfTradePrevention::None};
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 2u);
@@ -229,9 +248,10 @@ TEST(MatchingEngineTest, TradeReportsMakerOrderIdsAcrossMultipleLevels) {
 TEST(MatchingEngineTest, PartialFillKeepsMakerOrderInBookWithReducedQuantity) {
     MatchingEngine engine;
 
-    EXPECT_TRUE(engine.Book().AddOrder(Order{10, Side::Sell, 100.50, 7, 1}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{10, 10, Side::Sell, 100.50, 7, 1, SelfTradePrevention::None}));
 
-    Order incoming{20, Side::Buy, 101.00, 3, 2};
+    Order incoming{20, 20, Side::Buy, 101.00, 3, 2, SelfTradePrevention::None};
     auto result = engine.MatchLimitOrder(incoming);
 
     ASSERT_EQ(result.trades.size(), 1u);
@@ -241,4 +261,106 @@ TEST(MatchingEngineTest, PartialFillKeepsMakerOrderInBookWithReducedQuantity) {
     auto remaining = engine.Book().GetLevelVolume(Side::Sell, 100.50);
     ASSERT_TRUE(remaining.has_value());
     EXPECT_EQ(*remaining, 4u);
+}
+
+TEST(MatchingEngineTest, CancelNewestPreventsSelfMatchAgainstOwnRestingOrder) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 42, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+
+    Order incoming{2, 42, Side::Buy, 101.00, 5, 2, SelfTradePrevention::CancelNewest};
+    auto result = engine.MatchLimitOrder(incoming);
+
+    EXPECT_TRUE(result.trades.empty());
+    EXPECT_EQ(result.remaining_quantity, 5u);
+
+    auto volume = engine.Book().GetLevelVolume(Side::Sell, 100.50);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 5u);
+
+    auto best_ask = engine.Book().GetBestAsk();
+    ASSERT_TRUE(best_ask.has_value());
+    EXPECT_DOUBLE_EQ(*best_ask, 100.50);
+}
+
+TEST(MatchingEngineTest, CancelNewestAllowsMatchAgainstDifferentParticipant) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 7, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+
+    Order incoming{2, 42, Side::Buy, 101.00, 5, 2, SelfTradePrevention::CancelNewest};
+    auto result = engine.MatchLimitOrder(incoming);
+
+    ASSERT_EQ(result.trades.size(), 1u);
+    EXPECT_EQ(result.trades[0].taker_order_id, 2u);
+    EXPECT_EQ(result.trades[0].maker_order_id, 1u);
+    EXPECT_EQ(result.trades[0].side, Side::Buy);
+    EXPECT_DOUBLE_EQ(result.trades[0].price, 100.50);
+    EXPECT_EQ(result.trades[0].quantity, 5u);
+
+    EXPECT_EQ(result.remaining_quantity, 0u);
+    EXPECT_FALSE(engine.Book().GetBestAsk().has_value());
+}
+
+TEST(MatchingEngineTest, CancelNewestLeavesRestingOrderUnchanged) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 42, Side::Sell, 100.50, 8, 1, SelfTradePrevention::None}));
+
+    Order incoming{2, 42, Side::Buy, 101.00, 3, 2, SelfTradePrevention::CancelNewest};
+    auto result = engine.MatchLimitOrder(incoming);
+
+    EXPECT_TRUE(result.trades.empty());
+    EXPECT_EQ(result.remaining_quantity, 3u);
+
+    auto volume = engine.Book().GetLevelVolume(Side::Sell, 100.50);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 8u);
+}
+
+TEST(MatchingEngineTest, CancelNewestStopsBeforeDeeperMarketableLevels) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 42, Side::Sell, 100.50, 5, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{2, 7, Side::Sell, 100.75, 5, 2, SelfTradePrevention::None}));
+
+    Order incoming{3, 42, Side::Buy, 101.00, 10, 3, SelfTradePrevention::CancelNewest};
+    auto result = engine.MatchLimitOrder(incoming);
+
+    EXPECT_TRUE(result.trades.empty());
+    EXPECT_EQ(result.remaining_quantity, 10u);
+
+    auto first_level = engine.Book().GetLevelVolume(Side::Sell, 100.50);
+    ASSERT_TRUE(first_level.has_value());
+    EXPECT_EQ(*first_level, 5u);
+
+    auto second_level = engine.Book().GetLevelVolume(Side::Sell, 100.75);
+    ASSERT_TRUE(second_level.has_value());
+    EXPECT_EQ(*second_level, 5u);
+}
+
+TEST(MatchingEngineTest, CancelNewestOnSellPreventsSelfMatchAgainstBestBid) {
+    MatchingEngine engine;
+
+    EXPECT_TRUE(engine.Book().AddOrder(
+        Order{1, 42, Side::Buy, 100.00, 6, 1, SelfTradePrevention::None}));
+
+    Order incoming{2, 42, Side::Sell, 99.50, 6, 2, SelfTradePrevention::CancelNewest};
+    auto result = engine.MatchLimitOrder(incoming);
+
+    EXPECT_TRUE(result.trades.empty());
+    EXPECT_EQ(result.remaining_quantity, 6u);
+
+    auto volume = engine.Book().GetLevelVolume(Side::Buy, 100.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 6u);
+
+    auto best_bid = engine.Book().GetBestBid();
+    ASSERT_TRUE(best_bid.has_value());
+    EXPECT_DOUBLE_EQ(*best_bid, 100.00);
 }
