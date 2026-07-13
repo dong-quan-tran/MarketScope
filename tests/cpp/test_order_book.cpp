@@ -4,6 +4,20 @@
 
 using namespace bookforge;
 
+namespace {
+
+Order MakeOrder(std::uint64_t id,
+                std::uint64_t participant_id,
+                Side side,
+                double price,
+                std::uint32_t quantity,
+                std::uint64_t timestamp,
+                SelfTradePrevention stp = SelfTradePrevention::None) {
+    return Order{id, participant_id, side, price, quantity, timestamp, stp};
+}
+
+}  // namespace
+
 TEST(OrderBookTest, EmptyBookHasNoBestBidOrAsk) {
     OrderBook book;
 
@@ -15,7 +29,7 @@ TEST(OrderBookTest, EmptyBookHasNoBestBidOrAsk) {
 
 TEST(OrderBookTest, AddSingleBid) {
     OrderBook book;
-    Order order{1, 1, Side::Buy, 100.25, 10, 1, SelfTradePrevention::None};
+    Order order = MakeOrder(1, 1, Side::Buy, 100.25, 10, 1);
 
     EXPECT_TRUE(book.AddOrder(order));
 
@@ -26,8 +40,8 @@ TEST(OrderBookTest, AddSingleBid) {
 
 TEST(OrderBookTest, AddBidAndAskComputesMidAndSpread) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Sell, 100.50, 12, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Sell, 100.50, 12, 2)));
 
     ASSERT_TRUE(book.GetBestBid().has_value());
     ASSERT_TRUE(book.GetBestAsk().has_value());
@@ -42,7 +56,7 @@ TEST(OrderBookTest, AddBidAndAskComputesMidAndSpread) {
 
 TEST(OrderBookTest, CancelOrderRemovesLevelWhenEmpty) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 99.50, 20, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 99.50, 20, 1)));
 
     EXPECT_TRUE(book.CancelOrder(1));
     EXPECT_EQ(book.BidLevelCount(), 0);
@@ -51,8 +65,8 @@ TEST(OrderBookTest, CancelOrderRemovesLevelWhenEmpty) {
 
 TEST(OrderBookTest, MultipleOrdersSameLevelAggregateVolume) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 100.00, 15, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 100.00, 15, 2)));
 
     auto volume = book.GetLevelVolume(Side::Buy, 100.00);
     ASSERT_TRUE(volume.has_value());
@@ -61,9 +75,9 @@ TEST(OrderBookTest, MultipleOrdersSameLevelAggregateVolume) {
 
 TEST(OrderBookTest, BestBidTracksHighestPrice) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 99.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 101.00, 10, 2, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{3, 3, Side::Buy, 100.00, 10, 3, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 99.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 101.00, 10, 2)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(3, 3, Side::Buy, 100.00, 10, 3)));
 
     ASSERT_TRUE(book.GetBestBid().has_value());
     EXPECT_DOUBLE_EQ(*book.GetBestBid(), 101.00);
@@ -71,9 +85,9 @@ TEST(OrderBookTest, BestBidTracksHighestPrice) {
 
 TEST(OrderBookTest, BestAskTracksLowestPrice) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 102.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Sell, 100.50, 10, 2, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{3, 3, Side::Sell, 101.00, 10, 3, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 102.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Sell, 100.50, 10, 2)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(3, 3, Side::Sell, 101.00, 10, 3)));
 
     ASSERT_TRUE(book.GetBestAsk().has_value());
     EXPECT_DOUBLE_EQ(*book.GetBestAsk(), 100.50);
@@ -81,9 +95,9 @@ TEST(OrderBookTest, BestAskTracksLowestPrice) {
 
 TEST(OrderBookTest, BidDepthReturnsSortedLevels) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 99.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 101.00, 20, 2, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{3, 3, Side::Buy, 100.00, 30, 3, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 99.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 101.00, 20, 2)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(3, 3, Side::Buy, 100.00, 30, 3)));
 
     auto depth = book.GetBidDepth(2);
     ASSERT_EQ(depth.size(), 2);
@@ -95,9 +109,9 @@ TEST(OrderBookTest, BidDepthReturnsSortedLevels) {
 
 TEST(OrderBookTest, AskDepthReturnsSortedLevels) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 102.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Sell, 100.50, 20, 2, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{3, 3, Side::Sell, 101.00, 30, 3, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 102.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Sell, 100.50, 20, 2)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(3, 3, Side::Sell, 101.00, 30, 3)));
 
     auto depth = book.GetAskDepth(2);
     ASSERT_EQ(depth.size(), 2);
@@ -109,7 +123,7 @@ TEST(OrderBookTest, AskDepthReturnsSortedLevels) {
 
 TEST(OrderBookTest, PartialExecutionReducesFrontOrderVolume) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 20, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 20, 1)));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 5));
 
@@ -120,7 +134,7 @@ TEST(OrderBookTest, PartialExecutionReducesFrontOrderVolume) {
 
 TEST(OrderBookTest, FullExecutionRemovesPriceLevel) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 101.00, 20, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 101.00, 20, 1)));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Sell, 101.00, 20));
 
@@ -130,7 +144,7 @@ TEST(OrderBookTest, FullExecutionRemovesPriceLevel) {
 
 TEST(OrderBookTest, CancelMissingOrderReturnsFalse) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
 
     EXPECT_FALSE(book.CancelOrder(999));
 }
@@ -142,8 +156,8 @@ TEST(OrderBookTest, ExecuteMissingLevelReturnsFalse) {
 
 TEST(OrderBookTest, ExecuteTopOrderConsumesOldestOrderFirst) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 100.00, 15, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 100.00, 15, 2)));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
 
@@ -158,8 +172,8 @@ TEST(OrderBookTest, ExecuteTopOrderConsumesOldestOrderFirst) {
 
 TEST(OrderBookTest, ExecuteTopOrderPartiallyConsumesOldestBeforeNextOrder) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 101.00, 20, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Sell, 101.00, 30, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 101.00, 20, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Sell, 101.00, 30, 2)));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Sell, 101.00, 5));
 
@@ -175,7 +189,7 @@ TEST(OrderBookTest, ExecuteTopOrderPartiallyConsumesOldestBeforeNextOrder) {
 
 TEST(OrderBookTest, ExecuteZeroQuantityLeavesVolumeUnchanged) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 20, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 20, 1)));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 0));
 
@@ -186,7 +200,7 @@ TEST(OrderBookTest, ExecuteZeroQuantityLeavesVolumeUnchanged) {
 
 TEST(OrderBookTest, CancelOrderByIdRemovesAsk) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 101.50, 25, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 101.50, 25, 1)));
 
     EXPECT_TRUE(book.CancelOrder(1));
     EXPECT_EQ(book.AskLevelCount(), 0);
@@ -195,7 +209,7 @@ TEST(OrderBookTest, CancelOrderByIdRemovesAsk) {
 
 TEST(OrderBookTest, FullExecutionRemovesOrderFromIndex) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
 
     EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 10));
     EXPECT_FALSE(book.CancelOrder(1));
@@ -203,8 +217,8 @@ TEST(OrderBookTest, FullExecutionRemovesOrderFromIndex) {
 
 TEST(OrderBookTest, BidDepthRequestLargerThanAvailableReturnsAllLevels) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 101.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 100.00, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 101.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 100.00, 20, 2)));
 
     auto depth = book.GetBidDepth(10);
     ASSERT_EQ(depth.size(), 2);
@@ -216,8 +230,8 @@ TEST(OrderBookTest, BidDepthRequestLargerThanAvailableReturnsAllLevels) {
 
 TEST(OrderBookTest, AskDepthRequestLargerThanAvailableReturnsAllLevels) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 100.50, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Sell, 101.50, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 100.50, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Sell, 101.50, 20, 2)));
 
     auto depth = book.GetAskDepth(10);
     ASSERT_EQ(depth.size(), 2);
@@ -229,14 +243,14 @@ TEST(OrderBookTest, AskDepthRequestLargerThanAvailableReturnsAllLevels) {
 
 TEST(OrderBookTest, MidPriceUnavailableWhenOnlyBidExists) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
 
     EXPECT_FALSE(book.GetMidPrice().has_value());
 }
 
 TEST(OrderBookTest, SpreadUnavailableWhenOnlyAskExists) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Sell, 100.50, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Sell, 100.50, 10, 1)));
 
     EXPECT_FALSE(book.GetSpread().has_value());
 }
@@ -244,15 +258,15 @@ TEST(OrderBookTest, SpreadUnavailableWhenOnlyAskExists) {
 TEST(OrderBookTest, AddDuplicateOrderIdReturnsFalse) {
     OrderBook book;
 
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_FALSE(book.AddOrder(Order{1, 2, Side::Sell, 100.50, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_FALSE(book.AddOrder(MakeOrder(1, 2, Side::Sell, 100.50, 20, 2)));
 }
 
 TEST(OrderBookTest, DuplicateOrderIdDoesNotChangeBookState) {
     OrderBook book;
 
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_FALSE(book.AddOrder(Order{1, 2, Side::Buy, 101.00, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_FALSE(book.AddOrder(MakeOrder(1, 2, Side::Buy, 101.00, 20, 2)));
 
     ASSERT_TRUE(book.GetBestBid().has_value());
     EXPECT_DOUBLE_EQ(*book.GetBestBid(), 100.00);
@@ -272,21 +286,21 @@ TEST(OrderBookTest, ReduceMissingOrderReturnsFalse) {
 
 TEST(OrderBookTest, ReduceOrderQuantityRejectsZero) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
     EXPECT_FALSE(book.ReduceOrderQuantity(1, 0));
 }
 
 TEST(OrderBookTest, ReduceOrderQuantityRejectsNonReduction) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
     EXPECT_FALSE(book.ReduceOrderQuantity(1, 10));
     EXPECT_FALSE(book.ReduceOrderQuantity(1, 12));
 }
 
 TEST(OrderBookTest, ReduceOrderQuantityKeepsPriority) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 100.00, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 100.00, 20, 2)));
 
     EXPECT_TRUE(book.ReduceOrderQuantity(1, 6));
 
@@ -306,7 +320,7 @@ TEST(OrderBookTest, ReplaceMissingOrderReturnsFalse) {
 
 TEST(OrderBookTest, ReplaceOrderMovesToNewPriceLevel) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
 
     EXPECT_TRUE(book.ReplaceOrder(1, 101.00, 7, 2));
 
@@ -323,8 +337,8 @@ TEST(OrderBookTest, ReplaceOrderMovesToNewPriceLevel) {
 
 TEST(OrderBookTest, ReplaceOrderLosesPriorityAtSamePrice) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 100.00, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 100.00, 20, 2)));
 
     EXPECT_TRUE(book.ReplaceOrder(1, 100.00, 10, 3));
 
@@ -335,8 +349,8 @@ TEST(OrderBookTest, ReplaceOrderLosesPriorityAtSamePrice) {
 
 TEST(OrderBookTest, ReplaceOrderLosesPriorityAtNewPrice) {
     OrderBook book;
-    EXPECT_TRUE(book.AddOrder(Order{1, 1, Side::Buy, 100.00, 10, 1, SelfTradePrevention::None}));
-    EXPECT_TRUE(book.AddOrder(Order{2, 2, Side::Buy, 101.00, 20, 2, SelfTradePrevention::None}));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(1, 1, Side::Buy, 100.00, 10, 1)));
+    EXPECT_TRUE(book.AddOrder(MakeOrder(2, 2, Side::Buy, 101.00, 20, 2)));
 
     EXPECT_TRUE(book.ReplaceOrder(1, 101.00, 10, 3));
 
