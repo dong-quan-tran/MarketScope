@@ -264,3 +264,87 @@ TEST(OrderBookTest, DuplicateOrderIdDoesNotChangeBookState) {
 
     EXPECT_FALSE(book.GetLevelVolume(Side::Buy, 101.00).has_value());
 }
+
+TEST(OrderBookTest, ReduceMissingOrderReturnsFalse) {
+    OrderBook book;
+    EXPECT_FALSE(book.ReduceOrderQuantity(999, 5));
+}
+
+TEST(OrderBookTest, ReduceOrderQuantityRejectsZero) {
+    OrderBook book;
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_FALSE(book.ReduceOrderQuantity(1, 0));
+}
+
+TEST(OrderBookTest, ReduceOrderQuantityRejectsNonReduction) {
+    OrderBook book;
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_FALSE(book.ReduceOrderQuantity(1, 10));
+    EXPECT_FALSE(book.ReduceOrderQuantity(1, 12));
+}
+
+TEST(OrderBookTest, ReduceOrderQuantityKeepsPriority) {
+    OrderBook book;
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 100.00, 20, 2}));
+
+    EXPECT_TRUE(book.ReduceOrderQuantity(1, 6));
+
+    auto volume = book.GetLevelVolume(Side::Buy, 100.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 26);
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 6));
+    EXPECT_FALSE(book.CancelOrder(1));
+    EXPECT_TRUE(book.CancelOrder(2));
+}
+
+TEST(OrderBookTest, ReplaceMissingOrderReturnsFalse) {
+    OrderBook book;
+    EXPECT_FALSE(book.ReplaceOrder(999, 101.00, 5, 10));
+}
+
+TEST(OrderBookTest, ReplaceOrderMovesToNewPriceLevel) {
+    OrderBook book;
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+
+    EXPECT_TRUE(book.ReplaceOrder(1, 101.00, 7, 2));
+
+    EXPECT_FALSE(book.GetLevelVolume(Side::Buy, 100.00).has_value());
+
+    auto volume = book.GetLevelVolume(Side::Buy, 101.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 7);
+
+    auto best_bid = book.GetBestBid();
+    ASSERT_TRUE(best_bid.has_value());
+    EXPECT_DOUBLE_EQ(*best_bid, 101.00);
+}
+
+TEST(OrderBookTest, ReplaceOrderLosesPriorityAtSamePrice) {
+    OrderBook book;
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 100.00, 20, 2}));
+
+    EXPECT_TRUE(book.ReplaceOrder(1, 100.00, 10, 3));
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 100.00, 20));
+    EXPECT_FALSE(book.CancelOrder(2));
+    EXPECT_TRUE(book.CancelOrder(1));
+}
+
+TEST(OrderBookTest, ReplaceOrderLosesPriorityAtNewPrice) {
+    OrderBook book;
+    EXPECT_TRUE(book.AddOrder(Order{1, Side::Buy, 100.00, 10, 1}));
+    EXPECT_TRUE(book.AddOrder(Order{2, Side::Buy, 101.00, 20, 2}));
+
+    EXPECT_TRUE(book.ReplaceOrder(1, 101.00, 10, 3));
+
+    auto volume = book.GetLevelVolume(Side::Buy, 101.00);
+    ASSERT_TRUE(volume.has_value());
+    EXPECT_EQ(*volume, 30);
+
+    EXPECT_TRUE(book.ExecuteTopOrder(Side::Buy, 101.00, 20));
+    EXPECT_FALSE(book.CancelOrder(2));
+    EXPECT_TRUE(book.CancelOrder(1));
+}

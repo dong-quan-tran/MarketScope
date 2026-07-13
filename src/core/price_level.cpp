@@ -39,6 +39,23 @@ bool PriceLevel::ReduceFrontOrder(std::uint32_t quantity) {
     return true;
 }
 
+bool PriceLevel::ReduceOrderQuantity(Iterator it, std::uint32_t new_quantity) {
+    if (it == orders_.end()) {
+        return false;
+    }
+
+    if (new_quantity == 0) {
+        return false;
+    }
+
+    if (new_quantity >= it->quantity) {
+        return false;
+    }
+
+    it->quantity = new_quantity;
+    return true;
+}
+
 std::optional<Order> PriceLevel::FrontOrder() const {
     if (orders_.empty()) {
         return std::nullopt;

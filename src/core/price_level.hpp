@@ -19,6 +19,7 @@ public:
     void RemoveOrder(Iterator it);
     std::optional<Order> PopFrontOrder();
     bool ReduceFrontOrder(std::uint32_t quantity);
+    bool ReduceOrderQuantity(Iterator it, std::uint32_t new_quantity);
 
     [[nodiscard]] std::optional<Order> FrontOrder() const;
     [[nodiscard]] double GetPrice() const;

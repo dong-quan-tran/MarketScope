@@ -131,6 +131,82 @@ bool OrderBook::ExecuteTopOrder(Side side, double price, std::uint32_t quantity)
     return true;
 }
 
+bool OrderBook::ReduceOrderQuantity(std::uint64_t order_id, std::uint32_t new_quantity) {
+    auto index_it = order_index_.find(order_id);
+    if (index_it == order_index_.end()) {
+        return false;
+    }
+
+    const auto side = index_it->second.side;
+    const auto price = index_it->second.price;
+    const auto order_it = index_it->second.order_it;
+
+    if (side == Side::Buy) {
+        auto level_it = bids_.find(price);
+        if (level_it == bids_.end()) {
+            return false;
+        }
+        return level_it->second.ReduceOrderQuantity(order_it, new_quantity);
+    }
+
+    auto level_it = asks_.find(price);
+    if (level_it == asks_.end()) {
+        return false;
+    }
+    return level_it->second.ReduceOrderQuantity(order_it, new_quantity);
+}
+
+bool OrderBook::ReplaceOrder(std::uint64_t order_id,
+                             double new_price,
+                             std::uint32_t new_quantity,
+                             std::uint64_t new_timestamp) {
+    if (new_quantity == 0) {
+        return false;
+    }
+
+    auto index_it = order_index_.find(order_id);
+    if (index_it == order_index_.end()) {
+        return false;
+    }
+
+    const auto side = index_it->second.side;
+    const auto old_price = index_it->second.price;
+    const auto order_it = index_it->second.order_it;
+
+    Order replacement = *order_it;
+    replacement.price = new_price;
+    replacement.quantity = new_quantity;
+    replacement.timestamp = new_timestamp;
+
+    if (side == Side::Buy) {
+        auto level_it = bids_.find(old_price);
+        if (level_it == bids_.end()) {
+            return false;
+        }
+
+        level_it->second.RemoveOrder(order_it);
+
+        if (level_it->second.Empty()) {
+            bids_.erase(level_it);
+        }
+    } else {
+        auto level_it = asks_.find(old_price);
+        if (level_it == asks_.end()) {
+            return false;
+        }
+
+        level_it->second.RemoveOrder(order_it);
+
+        if (level_it->second.Empty()) {
+            asks_.erase(level_it);
+        }
+    }
+
+    order_index_.erase(index_it);
+
+    return AddOrder(replacement);
+}
+
 std::optional<double> OrderBook::GetBestBid() const {
     if (bids_.empty()) {
         return std::nullopt;
