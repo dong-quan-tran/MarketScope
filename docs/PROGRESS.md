@@ -140,3 +140,60 @@ Write 20+ Google Test cases: 22 tests passing via CTest.
 Add latency benchmark: Done (benchmark_order_book).
 
 Record results in docs/ARCHITECTURE.md: Draft done with current baseline.
+
+# Bookforge Progress Log — 2026-07-12
+
+## Summary
+
+Today’s work focused on expanding the matching engine, tightening order book semantics, and improving test reliability. The main outcomes were multi-level limit matching, maker-aware trade generation, replace/reduce order behavior, self-trade prevention with both `CancelNewest` and `CancelOldest`, and stronger test ergonomics through a shared order factory helper.
+
+## Completed work
+
+### Matching engine
+
+- Added limit-order matching through a dedicated `MatchingEngine` entry point.
+- Implemented multi-level matching so an incoming order can walk the book across multiple price levels.
+- Added maker-aware trade generation so each trade records both taker and maker order IDs.
+
+### Order book behavior
+
+- Added order reduction semantics.
+- Added order replacement semantics.
+- Verified that reduction preserves priority while replacement causes the order to lose time priority.
+- Added tests for same-price and new-price replacement behavior.
+
+### Self-trade prevention
+
+- Added `SelfTradePrevention::CancelNewest`.
+- Updated tests to cover `CancelNewest` behavior for both buy-side and sell-side matching.
+- Added `SelfTradePrevention::CancelOldest`.
+- Added tests verifying that `CancelOldest` removes the resting self-matching order and allows the incoming order to continue matching or rest.
+
+### Test infrastructure
+
+- Added a `MakeOrder` helper to reduce repetitive aggregate initialization in tests.
+- Updated tests to use the current `Order` shape consistently.
+- Expanded matching engine coverage with maker-aware and self-trade-prevention scenarios.
+- Kept the order book test suite aligned with reduce, replace, FIFO, and depth behavior.
+
+## Commits completed today
+
+- `50f048f` — Add matching engine for limit orders
+- `00b79a9` — Add multi-level limit order matching
+- `7875f91` — Add order reduction and replace semantics
+- `31405d3` — Add maker-aware trade generation
+- `2625e2b` — Add self-trade prevention CancelNewest
+- `3a9ae00` — Update tests with CancelNewest
+- `de4c756` — Add MakeOrder helper
+- `36ce2e3` — Add CancelOldest
+- `e7b4d23` — Add tests for CancelOldest
+
+## Validation
+
+- Rebuilt the project successfully with CMake.
+- Confirmed the test suite passed in full.
+- Current status: 51 tests passing, 0 failing.
+
+## Notes
+
+This was a strong correctness-focused session. The matching engine now supports more realistic execution behavior, self-trade prevention covers two useful policies, and the test suite is in a much better position to support future refactors.
