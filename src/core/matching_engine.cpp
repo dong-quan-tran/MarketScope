@@ -39,7 +39,12 @@ MatchResult MatchingEngine::MatchLimitOrder(const Order& incoming) {
             if (!maker.has_value()) {
                 break;
             }
-
+            if (incoming.stp == SelfTradePrevention::CancelNewest &&
+                incoming.participant_id != 0 &&
+                incoming.participant_id == maker->participant_id) {
+                result.remaining_quantity = incoming.quantity;
+                return result;
+            }
             const std::uint32_t executed_qty =
                 remaining <= maker->quantity ? remaining : maker->quantity;
 
@@ -64,6 +69,13 @@ MatchResult MatchingEngine::MatchLimitOrder(const Order& incoming) {
                 break;
             }
 
+            if (incoming.stp == SelfTradePrevention::CancelNewest &&
+                incoming.participant_id != 0 &&
+                incoming.participant_id == maker->participant_id) {
+                result.remaining_quantity = incoming.quantity;
+                return result;
+            }
+            
             const std::uint32_t executed_qty =
                 remaining <= maker->quantity ? remaining : maker->quantity;
 
