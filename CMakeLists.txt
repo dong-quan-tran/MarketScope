@@ -28,6 +28,7 @@ enable_testing()
 add_library(bookforge_core
   src/core/price_level.cpp
   src/core/order_book.cpp
+  src/core/matching_engine.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC
@@ -38,13 +39,23 @@ add_executable(test_order_book
   tests/cpp/test_order_book.cpp
 )
 
+add_executable(test_matching_engine
+  tests/cpp/test_matching_engine.cpp
+)
+
 target_link_libraries(test_order_book PRIVATE
+  bookforge_core
+  GTest::gtest_main
+)
+
+target_link_libraries(test_matching_engine PRIVATE
   bookforge_core
   GTest::gtest_main
 )
 
 include(GoogleTest)
 gtest_discover_tests(test_order_book)
+gtest_discover_tests(test_matching_engine)
 
 add_executable(benchmark_order_book
   bench/benchmark_order_book.cpp
