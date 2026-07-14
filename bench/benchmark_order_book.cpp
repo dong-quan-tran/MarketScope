@@ -10,6 +10,16 @@ using namespace bookforge;
 namespace {
 using Clock = std::chrono::steady_clock;
 
+Order MakeOrder(std::uint64_t id,
+                std::uint64_t participant_id,
+                Side side,
+                double price,
+                std::uint32_t quantity,
+                std::uint64_t timestamp,
+                SelfTradePrevention stp = SelfTradePrevention::None) {
+    return Order{id, participant_id, side, price, quantity, timestamp, stp};
+}
+
 void BenchmarkAddOrder(std::size_t iterations) {
     OrderBook book;
 
@@ -20,15 +30,9 @@ void BenchmarkAddOrder(std::size_t iterations) {
             ? 100.00 - static_cast<double>(i % 50) * 0.01
             : 100.50 + static_cast<double>(i % 50) * 0.01;
         const std::uint32_t quantity = 100 + static_cast<std::uint32_t>(i % 25);
-        const std::uint64_t timestamp = static_cast<std::uint64_t>(i + 1);
+        const std::uint64_t id = static_cast<std::uint64_t>(i + 1);
 
-        book.AddOrder(Order{
-            static_cast<std::uint64_t>(i + 1),
-            side,
-            price,
-            quantity,
-            timestamp
-        });
+        book.AddOrder(MakeOrder(id, id, side, price, quantity, id));
     }
     const auto end = Clock::now();
 
@@ -49,15 +53,9 @@ void BenchmarkCancelOrder(std::size_t iterations) {
             ? 100.00 - static_cast<double>(i % 50) * 0.01
             : 100.50 + static_cast<double>(i % 50) * 0.01;
         const std::uint32_t quantity = 100;
-        const std::uint64_t timestamp = static_cast<std::uint64_t>(i + 1);
+        const std::uint64_t id = static_cast<std::uint64_t>(i + 1);
 
-        book.AddOrder(Order{
-            static_cast<std::uint64_t>(i + 1),
-            side,
-            price,
-            quantity,
-            timestamp
-        });
+        book.AddOrder(MakeOrder(id, id, side, price, quantity, id));
     }
 
     const auto start = Clock::now();
@@ -78,13 +76,8 @@ void BenchmarkExecuteTopOrder(std::size_t iterations) {
     OrderBook book;
 
     for (std::size_t i = 0; i < iterations; ++i) {
-        book.AddOrder(Order{
-            static_cast<std::uint64_t>(i + 1),
-            Side::Buy,
-            100.00,
-            100,
-            static_cast<std::uint64_t>(i + 1)
-        });
+        const std::uint64_t id = static_cast<std::uint64_t>(i + 1);
+        book.AddOrder(MakeOrder(id, id, Side::Buy, 100.00, 100, id));
     }
 
     const auto start = Clock::now();
@@ -100,6 +93,50 @@ void BenchmarkExecuteTopOrder(std::size_t iterations) {
               << ", avg_ns=" << (total_ns / static_cast<long long>(iterations))
               << '\n';
 }
+
+void BenchmarkExecuteTopOrderPartial(std::size_t iterations) {
+    OrderBook book;
+
+    for (std::size_t i = 0; i < iterations; ++i) {
+        const std::uint64_t id = static_cast<std::uint64_t>(i + 1);
+        book.AddOrder(MakeOrder(id, id, Side::Buy, 100.00, 100, id));
+    }
+
+    const auto start = Clock::now();
+    for (std::size_t i = 0; i < iterations; ++i) {
+        book.ExecuteTopOrder(Side::Buy, 100.00, 1);
+    }
+    const auto end = Clock::now();
+
+    const auto total_ns =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+
+    std::cout << "ExecuteTopOrderPartial: total_ns=" << total_ns
+              << ", avg_ns=" << (total_ns / static_cast<long long>(iterations))
+              << '\n';
+}
+
+void BenchmarkExecuteTopOrderFull(std::size_t iterations) {
+    OrderBook book;
+
+    for (std::size_t i = 0; i < iterations; ++i) {
+        const std::uint64_t id = static_cast<std::uint64_t>(i + 1);
+        book.AddOrder(MakeOrder(id, id, Side::Buy, 100.00, 100, id));
+    }
+
+    const auto start = Clock::now();
+    for (std::size_t i = 0; i < iterations; ++i) {
+        book.ExecuteTopOrder(Side::Buy, 100.00, 100);
+    }
+    const auto end = Clock::now();
+
+    const auto total_ns =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+
+    std::cout << "ExecuteTopOrderFull: total_ns=" << total_ns
+              << ", avg_ns=" << (total_ns / static_cast<long long>(iterations))
+              << '\n';
+}
 }  // namespace
 
 int main() {
@@ -112,5 +149,7 @@ int main() {
     BenchmarkCancelOrder(kIterations);
     BenchmarkExecuteTopOrder(kIterations);
 
+    BenchmarkExecuteTopOrderPartial(kIterations);
+    BenchmarkExecuteTopOrderFull(kIterations);
     return 0;
 }
