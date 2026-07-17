@@ -197,3 +197,24 @@ Today’s work focused on expanding the matching engine, tightening order book s
 ## Notes
 
 This was a strong correctness-focused session. The matching engine now supports more realistic execution behavior, self-trade prevention covers two useful policies, and the test suite is in a much better position to support future refactors.
+
+# Bookforge Progress Log — 2026-07-13
+
+## Summary
+
+Today’s work focused on improving the order book benchmark file and getting it back into a clean, maintainable state before starting Week 2.
+
+## Completed work
+
+- Updated `bench/benchmark_order_book.cpp` to use the current `Order` shape.
+- Added a local `MakeOrder` helper to reduce brittle aggregate initialization in the benchmark file.
+- Kept the benchmark setup clearer by separating book population from the timed sections for cancel and execute paths.
+- Rebuilt and ran the benchmark successfully.
+- Captured baseline timing for core order book operations:
+  - `AddOrder`
+  - `CancelOrder`
+  - `ExecuteTopOrder`
+
+## Result
+
+The benchmark now compiles cleanly and provides a usable baseline for future performance work. With that foundation in place, benchmark improvements are in a good stopping point, and Week 2 can begin with a stable reference point.
