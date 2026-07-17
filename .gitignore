@@ -35,3 +35,14 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Hyperliquid raw data and extraction
+data/btc_orders_202512.tar.xz
+data/mapdir.tar.xz
+data/order_statuses/
+data/mapdir/
+data/__pycache__/
+data/read_data.py
+
+# Hyperliquid CSVs
+data/*.csv
