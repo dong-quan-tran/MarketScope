@@ -218,3 +218,40 @@ Today’s work focused on improving the order book benchmark file and getting it
 ## Result
 
 The benchmark now compiles cleanly and provides a usable baseline for future performance work. With that foundation in place, benchmark improvements are in a good stopping point, and Week 2 can begin with a stable reference point.
+
+## 2026-07-16
+
+### Completed
+- Explored the Hyperliquid order-status dataset layout and verified the extracted folder structure.
+- Loaded and decoded `statuses.csv`, then mapped raw `statusId` values to readable status names.
+- Built a Python enrichment flow to merge raw order events with status labels and derive a simplified `eventType`.
+- Generated an enriched sample event CSV for replay experiments.
+- Added initial C++ replay-side types:
+  - `ExternalOrderEvent`
+  - `HyperliquidCsvReader`
+  - `HyperliquidMessageReplayer`
+- Added a basic replay executable to read the enriched CSV and summarize event counts.
+- Added an adapter-oriented replay design:
+  - `HyperliquidEngineAdapter`
+  - `ReplayEngineStub`
+- Updated the main `README.md` to reflect the new Hyperliquid replay workflow and current architecture direction.
+- Cleaned up git tracking so large raw datasets stay local and only code/docs are committed.
+
+### Key outputs
+- Working enriched sample schema:
+
+```text
+ts,limitPx,sz,isAsk,statusId,status,eventType
+```
+
+- First external-event replay path from CSV into C++.
+- First adapter boundary between exchange-specific replay data and internal engine-facing actions.
+
+### Notes
+- The current Hyperliquid sample is good enough for replay experiments and event classification.
+- Exact cancel/fill semantics are still limited because the current sample workflow does not yet fully model order-ID-based lifecycle reconstruction.
+
+### Next
+- Replace the stub path with the real matching engine interface.
+- Define how `New`, `Cancel`, and `Fill` should map into internal engine actions.
+- Add replay-focused tests for parsing, event classification, and adapter behavior.
