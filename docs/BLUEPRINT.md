@@ -1,56 +1,366 @@
-# Bookforge � Project Blueprint & TODO
+# Bookforge Blueprint
 
-## Project Summary
-Low-latency C++20 limit order book with pybind11 Python bridge, multi-level
-Order Flow Imbalance (OFI) feature extraction, Kyle's Lambda liquidity
-estimation, and an XGBoost ML layer to predict short-term mid-price direction.
+## Project summary
 
-## WEEK 1 � C++ Order Book Core
-- [ ] Define Order struct in src/core/order.hpp
-- [ ] Implement PriceLevel in src/core/price_level.hpp/.cpp
-- [ ] Implement OrderBook in src/core/order_book.hpp/.cpp
-- [ ] Add AddOrder(), CancelOrder(), ExecuteOrder()
-- [ ] Add GetBestBid(), GetBestAsk(), GetMidPrice(), GetSpread()
-- [ ] Write 20+ Google Test cases
-- [ ] Add latency benchmark
-- [ ] Record results in docs/ARCHITECTURE.md
+Bookforge is a hybrid **C++20 + Python** market microstructure project centered on a low-latency limit order book, historical market replay, feature extraction, and short-horizon signal research.
 
-## WEEK 2 � LOBSTER Replayer + Matching Engine
-- [ ] Download LOBSTER sample data
-- [ ] Implement MessageReplayer
-- [ ] Implement MatchingEngine
-- [ ] Implement SnapshotSerializer
-- [ ] Replay real data end-to-end
-- [ ] Verify mid-price against LOBSTER snapshots
+The long-term goal is to build a repo that demonstrates strength across:
+- **systems engineering**
+- **market microstructure modeling**
+- **historical replay infrastructure**
+- **feature engineering + ML research**
+- **clear documentation, testing, and interview readiness**
 
-## WEEK 3 � Feature Exporter + pybind11
-- [ ] Implement OFI levels 1�5
-- [ ] Add weighted OFI, spread, imbalance
-- [ ] Expose C++ book + features with pybind11
-- [ ] Build Python wrapper
-- [ ] Implement Kyle's Lambda
-- [ ] Write Pytest cases
+This is not just an order book project. It is gradually becoming a small **market replay and research platform**.
 
-## WEEK 4 � ML Signal Layer
-- [ ] Build label generator
-- [ ] Assemble feature set
-- [ ] Train XGBoost classifier
+---
+
+## North-star objectives
+
+- Build a clean **price-time priority limit order book** in C++.
+- Support **historical replay** from external market data sources.
+- Create an adapter boundary between **exchange-specific data** and **internal engine actions**.
+- Export microstructure features for downstream research.
+- Build a Python layer for liquidity estimation and short-horizon prediction.
+- Provide a lightweight demo surface through an API and dashboard.
+- Make the codebase polished enough for strong discussion in **quant SWE / quant research interviews**.
+
+---
+
+## Architecture pillars
+
+### 1. Core engine
+The core engine is responsible for:
+- order representation
+- price levels
+- price-time priority
+- insertion, cancellation, execution
+- best bid / ask access
+- spread and mid-price queries
+- deterministic internal state transitions
+
+### 2. Replay and data adapters
+The replay layer is responsible for:
+- loading historical datasets
+- normalizing raw exchange fields
+- mapping external events into internal engine-facing actions
+- replaying events in deterministic order
+- optionally validating replay results against reference snapshots
+
+### 3. Feature extraction
+The feature layer is responsible for:
+- spread and mid-price tracking
+- top-of-book and multi-level depth metrics
+- order flow imbalance
+- depth imbalance
+- rolling liquidity measures
+- feature export for Python workflows
+
+### 4. Research layer
+The research layer is responsible for:
+- data cleaning and labeling
+- liquidity estimation
+- ML training and validation
+- explainability and error analysis
+- experiment logging and reproducibility
+
+### 5. Demo and product surface
+The demo layer is responsible for:
+- exposing replay / feature outputs via API
+- visualizing book state and metrics
+- showing research outputs in a simple dashboard
+- making the repo easier to understand and demo live
+
+---
+
+## Current direction
+
+The original plan focused mainly on **LOBSTER-style replay**. The project now also includes an early **Hyperliquid historical replay path**, which means the architecture should support more than one data source.
+
+This changes the design emphasis:
+
+- not just “load one dataset,”
+- but “define a reusable replay abstraction that can support multiple providers.”
+
+Near-term design principle:
+- **raw dataset -> normalization -> external event model -> engine adapter -> internal engine**
+
+---
+
+## Phase 1 — Core engine foundation
+
+### Goals
+Build a correct and testable C++ order book core.
+
+### Tasks
+- [ ] Finalize `Order` representation in `src/core/`
+- [ ] Finalize `PriceLevel`
+- [ ] Finalize `OrderBook`
+- [ ] Implement add / cancel / execute paths
+- [ ] Implement best bid / best ask
+- [ ] Implement mid-price / spread helpers
+- [ ] Define invariants for price-time priority
+- [ ] Add explicit handling for empty book states
+- [ ] Add clear ownership and lifetime rules for orders
+- [ ] Document data structures in `docs/ARCHITECTURE.md`
+
+### Testing / done criteria
+- [ ] 20+ focused Google Tests
+- [ ] Tests for FIFO behavior within a price level
+- [ ] Tests for bid/ask ordering correctness
+- [ ] Tests for partial fills
+- [ ] Tests for cancellations
+- [ ] Tests for empty-book edge cases
+- [ ] Basic benchmark for insert / cancel / execute latency
+
+---
+
+## Phase 2 — Replay foundation
+
+### Goals
+Build a deterministic replay pipeline that can ingest historical market data and turn it into engine-facing events.
+
+### Tasks
+- [ ] Define a stable external event model
+- [ ] Define replay interfaces in `src/replay/`
+- [ ] Implement CSV / flat-file replay reader
+- [ ] Implement deterministic event ordering guarantees
+- [ ] Add replay statistics and instrumentation
+- [ ] Add replay logging for debugging
+- [ ] Define replay error handling for malformed rows
+- [ ] Add support for bounded sample replays for tests
+- [ ] Define replay configuration object (path, symbol, limits, filters)
+
+### Data-source tasks
+- [ ] Support LOBSTER-style message replay
+- [ ] Support Hyperliquid-style enriched event replay
+- [ ] Document source-specific field mappings
+- [ ] Keep raw-provider logic out of the core engine
+
+### Testing / done criteria
+- [ ] Replay a small historical sample end-to-end
+- [ ] Verify event counts and ordering
+- [ ] Add parser tests for malformed / missing data
+- [ ] Add fixture-based replay regression tests
+
+---
+
+## Phase 3 — Engine adapter layer
+
+### Goals
+Create a clean boundary between external market data and internal order-book actions.
+
+### Tasks
+- [ ] Define `ExternalOrderEvent`
+- [ ] Define engine adapter interface
+- [ ] Map `New` events into internal passive order submissions
+- [ ] Decide how `Cancel` should work when external IDs are missing
+- [ ] Decide how `Fill` should map into internal execution state
+- [ ] Decide how to treat `Reject`, `Trigger`, and `Other`
+- [ ] Add synthetic-ID handling where necessary for partial prototypes
+- [ ] Keep exchange-specific status logic isolated in adapter code
+- [ ] Add adapter metrics: submitted, ignored, rejected, unsupported
+
+### Design questions
+- [ ] Should replay drive the actual matching engine directly, or an intermediate simulation layer?
+- [ ] How should incomplete external data be represented without polluting core engine semantics?
+- [ ] What is the minimal internal API the replay path needs?
+
+### Testing / done criteria
+- [ ] Adapter unit tests for each event type
+- [ ] Stub-backed replay integration test
+- [ ] One real-engine integration path using adapter calls
+
+---
+
+## Phase 4 — Matching engine integration
+
+### Goals
+Connect replayed events to a realistic matching workflow.
+
+### Tasks
+- [ ] Implement or refine `MatchingEngine`
+- [ ] Define interaction between `OrderBook` and `MatchingEngine`
+- [ ] Support passive order insertion
+- [ ] Support aggressive execution path
+- [ ] Support partial fill bookkeeping
+- [ ] Support cancellation path
+- [ ] Emit trade / fill records
+- [ ] Add internal event logging hooks
+- [ ] Define whether snapshots are derived live or serialized after replay
+
+### Validation tasks
+- [ ] Verify top-of-book evolution during replay
+- [ ] Compare replayed state against reference snapshots when available
+- [ ] Document known gaps between prototype replay and full market reconstruction
+
+### Testing / done criteria
+- [ ] End-to-end replay through the real engine
+- [ ] Trade generation tests
+- [ ] Partial fill tests
+- [ ] Cancel-after-partial-fill tests
+- [ ] Replay consistency tests
+
+---
+
+## Phase 5 — Snapshot and serialization layer
+
+### Goals
+Make book state exportable and reproducible.
+
+### Tasks
+- [ ] Define snapshot schema
+- [ ] Implement `SnapshotSerializer`
+- [ ] Export top-N book depth
+- [ ] Export best bid / ask, spread, mid-price
+- [ ] Export replay timestamps and event counters
+- [ ] Support CSV and/or binary snapshot output
+- [ ] Add snapshot comparison tools
+
+### Testing / done criteria
+- [ ] Snapshot round-trip tests
+- [ ] Snapshot schema documentation
+- [ ] Validation against replay checkpoints
+
+---
+
+## Phase 6 — Feature extraction
+
+### Goals
+Turn replayed book state into usable microstructure features.
+
+### Tasks
+- [ ] Compute best bid / ask and spread over time
+- [ ] Compute mid-price over time
+- [ ] Compute top-level depth imbalance
+- [ ] Compute multi-level depth imbalance
+- [ ] Compute OFI for levels 1–5
+- [ ] Add weighted OFI
+- [ ] Add rolling liquidity / volatility context features
+- [ ] Define feature export format
+- [ ] Add feature naming and schema conventions
+
+### Testing / done criteria
+- [ ] Feature unit tests
+- [ ] Small fixture-based expected-value tests
+- [ ] Feature export validated in Python
+
+---
+
+## Phase 7 — Python bridge and research layer
+
+### Goals
+Expose C++ outputs to Python and build the research workflow.
+
+### Tasks
+- [ ] Add pybind11 bindings for core book / replay / feature objects
+- [ ] Build Python wrapper package
+- [ ] Implement feature loading utilities
+- [ ] Implement label generation for short-horizon prediction
+- [ ] Implement Kyle’s Lambda estimation
+- [ ] Build first training dataset
+- [ ] Train XGBoost baseline
 - [ ] Add walk-forward validation
-- [ ] Evaluate accuracy, precision/recall, Sharpe
-- [ ] Add SHAP feature importance
-- [ ] Log runs with MLflow
+- [ ] Add feature importance / SHAP analysis
+- [ ] Add ML experiment tracking
 
-## WEEK 5 � FastAPI + Dashboard
-- [ ] Build FastAPI endpoints
-- [ ] Add API tests
+### Testing / done criteria
+- [ ] Pytest coverage for Python wrappers
+- [ ] Reproducible training run
+- [ ] Baseline metrics logged and documented
+
+---
+
+## Phase 8 — API and dashboard
+
+### Goals
+Create a lightweight surface for inspection and demos.
+
+### Tasks
+- [ ] Build FastAPI service
+- [ ] Add endpoint for replay summary
+- [ ] Add endpoint for feature export / sample retrieval
+- [ ] Add endpoint for book snapshot inspection
 - [ ] Build React dashboard
-- [ ] Add latency benchmark script
+- [ ] Visualize spread, mid-price, depth, and imbalance
+- [ ] Add replay summary cards and charts
+- [ ] Add API tests
 - [ ] Add Docker setup
 
-## WEEK 6 � Polish
-- [ ] Reach 50+ Google Test cases
+### Testing / done criteria
+- [ ] End-to-end local demo
+- [ ] Basic API contract tests
+- [ ] Dashboard loads sample replay outputs correctly
+
+---
+
+## Phase 9 — Performance and engineering polish
+
+### Goals
+Raise the repo from “works” to “serious project.”
+
+### Tasks
+- [ ] Reach 50+ Google Tests
 - [ ] Reach 50+ Pytest cases
+- [ ] Add C++ benchmarks
+- [ ] Add replay throughput benchmark
+- [ ] Add profiling notes
 - [ ] Add GitHub Actions CI
-- [ ] Finish README
-- [ ] Finish docs/INTERVIEW_PREP.md
-- [ ] Tag v1.0.0
+- [ ] Add formatting / linting rules
+- [ ] Improve README and docs
+- [ ] Finish `docs/INTERVIEW_PREP.md`
+- [ ] Add architecture diagrams
+- [ ] Tag a clean milestone release
+
+---
+
+## Phase 10 — Stretch goals
+
+These are optional but high-value if time allows.
+
+### Research / simulation
+- [ ] Add synthetic market event generator
+- [ ] Add agent-based simulation mode
+- [ ] Allow user-injected orders during historical replay
+- [ ] Compare passive vs aggressive strategy behavior under replay
+- [ ] Add queue-position-aware experiments if richer data becomes available
+
+### Systems / performance
+- [ ] Add lock-free replay queue
+- [ ] Add deterministic replay pacing
+- [ ] Add latency histograms
+- [ ] Add multi-symbol support
+- [ ] Add binary historical data reader for higher throughput
+
+### Product / presentation
+- [ ] Add a polished demo scenario for interviews
+- [ ] Add benchmark tables to docs
+- [ ] Add architecture decision records (ADRs)
+
+---
+
+## Suggested implementation order right now
+
+Priority order for the next few steps:
+
+1. Stabilize the current replay files and adapter structure.
+2. Plug the adapter into the real matching engine interface.
+3. Add replay-focused tests.
+4. Define snapshot output.
+5. Start feature extraction from replayed book state.
+6. Revisit Python bindings only after the replay/core path feels stable.
+
+---
+
+## Definition of success
+
+Bookforge will feel “high level” when it can do the following:
+
+- replay a historical sample deterministically,
+- map raw market data into a clean internal engine interface,
+- maintain a correct order-book state,
+- export useful microstructure features,
+- support a reproducible Python research workflow,
+- and present the system clearly through tests, docs, and a small demo.
+
+At that point, it becomes a strong portfolio project not just as an order book, but as a compact **market microstructure research platform**.
