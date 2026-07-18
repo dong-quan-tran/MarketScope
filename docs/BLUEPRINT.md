@@ -93,16 +93,16 @@ Near-term design principle:
 Build a correct and testable C++ order book core.
 
 ### Tasks
-- [ ] Finalize `Order` representation in `src/core/`
-- [ ] Finalize `PriceLevel`
-- [ ] Finalize `OrderBook`
-- [ ] Implement add / cancel / execute paths
-- [ ] Implement best bid / best ask
-- [ ] Implement mid-price / spread helpers
-- [ ] Define invariants for price-time priority
-- [ ] Add explicit handling for empty book states
-- [ ] Add clear ownership and lifetime rules for orders
-- [ ] Document data structures in `docs/ARCHITECTURE.md`
+- [x] Finalize `Order` representation in `src/core/`
+- [x] Finalize `PriceLevel`
+- [x] Finalize `OrderBook`
+- [x] Implement add / cancel / execute paths
+- [x] Implement best bid / best ask
+- [x] Implement mid-price / spread helpers
+- [x] Define invariants for price-time priority
+- [x] Add explicit handling for empty book states
+- [x] Add clear ownership and lifetime rules for orders
+- [x] Document data structures in `docs/ARCHITECTURE.md`
 
 ### Testing / done criteria
 - [ ] 20+ focused Google Tests
