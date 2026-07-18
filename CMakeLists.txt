@@ -119,3 +119,20 @@ target_include_directories(test_replay_runner PRIVATE
 )
 
 gtest_discover_tests(test_replay_runner)
+
+add_executable(test_replay_regression
+  tests/cpp/test_replay_regression.cpp
+  src/HyperliquidCsvReader.cpp
+  src/replay/ReplayRunner.cpp
+)
+
+target_link_libraries(test_replay_regression PRIVATE
+  bookforge_core
+  GTest::gtest_main
+)
+
+target_include_directories(test_replay_regression PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+gtest_discover_tests(test_replay_regression)

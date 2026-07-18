@@ -141,7 +141,7 @@ Build a deterministic replay pipeline that can ingest historical market data and
 - [x] Replay a small historical sample end-to-end
 - [x] Verify event counts and ordering
 - [x] Add parser tests for malformed / missing data
-- [ ] Add fixture-based replay regression tests
+- [x] Add fixture-based replay regression tests
 
 ## Phase 3 — Engine adapter layer
 
