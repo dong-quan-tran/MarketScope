@@ -5,6 +5,7 @@
 #include <limits>
 #include <vector>
 
+#include "IReplayAdapter.hpp"
 #include "ExternalOrderEvent.hpp"
 #include "core/matching_engine.hpp"
 #include "core/order.hpp"
@@ -26,40 +27,50 @@ struct ReplayStats {
     std::size_t generatedTrades{0};
 };
 
-class HyperliquidMatchingEngineAdapter {
+class HyperliquidMatchingEngineAdapter final : public IReplayAdapter {
 public:
     explicit HyperliquidMatchingEngineAdapter(MatchingEngine& engine)
         : engine_(engine) {}
 
-    void OnEvent(const ExternalOrderEvent& ev) {
+    void OnEvent(const ExternalOrderEvent& ev) override {
         ++stats_.totalEvents;
 
         switch (ev.eventType) {
         case EventType::New:
             ++stats_.newCount;
+            ++metrics_.newEvents;
             SubmitNewOrder(ev);
             break;
         case EventType::Cancel:
             ++stats_.cancelCount;
-            ++stats_.ignoredEvents;
+            ++metrics_.cancelEvents;
+            HandleCancel(ev);
             break;
         case EventType::Fill:
             ++stats_.fillCount;
-            ++stats_.ignoredEvents;
+            ++metrics_.fillEvents;
+            HandleFill(ev);
             break;
         case EventType::Reject:
             ++stats_.rejectCount;
-            ++stats_.ignoredEvents;
+            ++metrics_.rejectEvents;
+            HandleReject(ev);
             break;
         case EventType::Trigger:
             ++stats_.triggerCount;
-            ++stats_.ignoredEvents;
+            ++metrics_.triggerEvents;
+            HandleTrigger(ev);
             break;
         case EventType::Other:
             ++stats_.otherCount;
-            ++stats_.ignoredEvents;
+            ++metrics_.otherEvents;
+            HandleOther(ev);
             break;
         }
+    }
+
+    const AdapterMetrics& Metrics() const override {
+        return metrics_;
     }
 
     const ReplayStats& Stats() const {
@@ -83,17 +94,44 @@ private:
 
         if (order.quantity == 0) {
             ++stats_.ignoredEvents;
+            ++metrics_.ignored;
             return;
         }
 
         MatchResult result = engine_.MatchLimitOrder(order);
 
         ++stats_.submittedOrders;
+        ++metrics_.submitted;
         stats_.generatedTrades += result.trades.size();
 
         for (const auto& trade : result.trades) {
             trades_.push_back(trade);
         }
+    }
+
+    void HandleCancel(const ExternalOrderEvent&) {
+        ++stats_.ignoredEvents;
+        ++metrics_.unsupported;
+    }
+
+    void HandleFill(const ExternalOrderEvent&) {
+        ++stats_.ignoredEvents;
+        ++metrics_.unsupported;
+    }
+
+    void HandleReject(const ExternalOrderEvent&) {
+        ++stats_.ignoredEvents;
+        ++metrics_.rejected;
+    }
+
+    void HandleTrigger(const ExternalOrderEvent&) {
+        ++stats_.ignoredEvents;
+        ++metrics_.ignored;
+    }
+
+    void HandleOther(const ExternalOrderEvent&) {
+        ++stats_.ignoredEvents;
+        ++metrics_.ignored;
     }
 
     static std::uint32_t ToInternalQuantity(double size) {
@@ -117,6 +155,7 @@ private:
 private:
     MatchingEngine& engine_;
     ReplayStats stats_{};
+    AdapterMetrics metrics_{};
     std::vector<Trade> trades_{};
 
     std::uint64_t nextSyntheticOrderId_{1};
