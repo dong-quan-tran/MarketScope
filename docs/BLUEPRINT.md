@@ -128,7 +128,7 @@ Build a deterministic replay pipeline that can ingest historical market data and
 - [x] Add replay statistics and instrumentation
 - [x] Add replay logging for debugging
 - [x] Define replay error handling for malformed rows
-- [ ] Add support for bounded sample replays for tests
+- [x] Add support for bounded sample replays for tests
 - [x] Define replay configuration object (path, symbol, limits, filters)
 
 ### Data-source tasks
@@ -139,7 +139,7 @@ Build a deterministic replay pipeline that can ingest historical market data and
 
 ### Testing / done criteria
 - [x] Replay a small historical sample end-to-end
-- [ ] Verify event counts and ordering
+- [x] Verify event counts and ordering
 - [x] Add parser tests for malformed / missing data
 - [ ] Add fixture-based replay regression tests
 
