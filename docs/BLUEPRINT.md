@@ -121,29 +121,27 @@ Build a correct and testable C++ order book core.
 Build a deterministic replay pipeline that can ingest historical market data and turn it into engine-facing events.
 
 ### Tasks
-- [ ] Define a stable external event model
-- [ ] Define replay interfaces in `src/replay/`
-- [ ] Implement CSV / flat-file replay reader
-- [ ] Implement deterministic event ordering guarantees
-- [ ] Add replay statistics and instrumentation
-- [ ] Add replay logging for debugging
-- [ ] Define replay error handling for malformed rows
+- [x] Define a stable external event model
+- [x] Define replay interfaces in `src/replay/`
+- [x] Implement CSV / flat-file replay reader
+- [x] Implement deterministic event ordering guarantees
+- [x] Add replay statistics and instrumentation
+- [x] Add replay logging for debugging
+- [x] Define replay error handling for malformed rows
 - [ ] Add support for bounded sample replays for tests
-- [ ] Define replay configuration object (path, symbol, limits, filters)
+- [x] Define replay configuration object (path, symbol, limits, filters)
 
 ### Data-source tasks
 - [ ] Support LOBSTER-style message replay
-- [ ] Support Hyperliquid-style enriched event replay
+- [x] Support Hyperliquid-style enriched event replay
 - [ ] Document source-specific field mappings
-- [ ] Keep raw-provider logic out of the core engine
+- [x] Keep raw-provider logic out of the core engine
 
 ### Testing / done criteria
-- [ ] Replay a small historical sample end-to-end
+- [x] Replay a small historical sample end-to-end
 - [ ] Verify event counts and ordering
-- [ ] Add parser tests for malformed / missing data
+- [x] Add parser tests for malformed / missing data
 - [ ] Add fixture-based replay regression tests
-
----
 
 ## Phase 3 — Engine adapter layer
 
