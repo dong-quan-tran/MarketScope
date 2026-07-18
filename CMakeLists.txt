@@ -70,6 +70,11 @@ gtest_discover_tests(test_hyperliquid_matching_engine_adapter)
 add_executable(hyperliquid_replay_main
   src/hyperliquid_replay_main.cpp
   src/HyperliquidCsvReader.cpp
+  src/replay/ReplayRunner.cpp
+)
+
+target_include_directories(hyperliquid_replay_main PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(hyperliquid_replay_main PRIVATE
@@ -83,3 +88,18 @@ add_executable(benchmark_order_book
 target_link_libraries(benchmark_order_book PRIVATE
   bookforge_core
 )
+
+add_executable(test_hyperliquid_csv_reader
+  tests/cpp/test_hyperliquid_csv_reader.cpp
+  src/HyperliquidCsvReader.cpp
+)
+
+target_link_libraries(test_hyperliquid_csv_reader PRIVATE
+  GTest::gtest_main
+)
+
+target_include_directories(test_hyperliquid_csv_reader PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+gtest_discover_tests(test_hyperliquid_csv_reader)
