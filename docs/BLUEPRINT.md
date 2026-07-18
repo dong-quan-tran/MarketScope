@@ -105,13 +105,13 @@ Build a correct and testable C++ order book core.
 - [x] Document data structures in `docs/ARCHITECTURE.md`
 
 ### Testing / done criteria
-- [ ] 20+ focused Google Tests
-- [ ] Tests for FIFO behavior within a price level
-- [ ] Tests for bid/ask ordering correctness
-- [ ] Tests for partial fills
-- [ ] Tests for cancellations
-- [ ] Tests for empty-book edge cases
-- [ ] Basic benchmark for insert / cancel / execute latency
+- [x] 20+ focused Google Tests
+- [x] Tests for FIFO behavior within a price level
+- [x] Tests for bid/ask ordering correctness
+- [x] Tests for partial fills
+- [x] Tests for cancellations
+- [x] Tests for empty-book edge cases
+- [x] Basic benchmark for insert / cancel / execute latency
 
 ---
 
