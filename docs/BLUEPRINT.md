@@ -132,9 +132,8 @@ Build a deterministic replay pipeline that can ingest historical market data and
 - [x] Define replay configuration object (path, symbol, limits, filters)
 
 ### Data-source tasks
-- [ ] Support LOBSTER-style message replay
 - [x] Support Hyperliquid-style enriched event replay
-- [ ] Document source-specific field mappings
+- [x] Document source-specific field mappings
 - [x] Keep raw-provider logic out of the core engine
 
 ### Testing / done criteria
@@ -149,25 +148,25 @@ Build a deterministic replay pipeline that can ingest historical market data and
 Create a clean boundary between external market data and internal order-book actions.
 
 ### Tasks
-- [ ] Define `ExternalOrderEvent`
-- [ ] Define engine adapter interface
-- [ ] Map `New` events into internal passive order submissions
-- [ ] Decide how `Cancel` should work when external IDs are missing
-- [ ] Decide how `Fill` should map into internal execution state
-- [ ] Decide how to treat `Reject`, `Trigger`, and `Other`
-- [ ] Add synthetic-ID handling where necessary for partial prototypes
-- [ ] Keep exchange-specific status logic isolated in adapter code
-- [ ] Add adapter metrics: submitted, ignored, rejected, unsupported
+- [x] Define `ExternalOrderEvent`
+- [x] Define engine adapter interface
+- [x] Map `New` events into internal passive order submissions
+- [x] Decide how `Cancel` should work when external IDs are missing
+- [x] Decide how `Fill` should map into internal execution state
+- [x] Decide how to treat `Reject`, `Trigger`, and `Other`
+- [x] Add synthetic-ID handling where necessary for partial prototypes
+- [x] Keep exchange-specific status logic isolated in adapter code
+- [x] Add adapter metrics: submitted, ignored, rejected, unsupported
 
 ### Design questions
-- [ ] Should replay drive the actual matching engine directly, or an intermediate simulation layer?
-- [ ] How should incomplete external data be represented without polluting core engine semantics?
-- [ ] What is the minimal internal API the replay path needs?
+- [x] Should replay drive the actual matching engine directly, or an intermediate simulation layer?
+- [x] How should incomplete external data be represented without polluting core engine semantics?
+- [x] What is the minimal internal API the replay path needs?
 
 ### Testing / done criteria
-- [ ] Adapter unit tests for each event type
-- [ ] Stub-backed replay integration test
-- [ ] One real-engine integration path using adapter calls
+- [x] Adapter unit tests for each event type
+- [x] Stub-backed replay integration test
+- [x] One real-engine integration path using adapter calls
 
 ---
 
