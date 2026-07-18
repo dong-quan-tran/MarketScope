@@ -2,8 +2,8 @@
 
 #include "ExternalOrderEvent.hpp"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace bookforge {
 
@@ -12,9 +12,11 @@ public:
     explicit HyperliquidCsvReader(std::string path);
 
     std::vector<ExternalOrderEvent> read_all();
+    std::vector<ExternalOrderEvent> read_all(bool strict_mode, bool log_errors);
 
 private:
     std::string path_;
+
     EventType map_event_type(const std::string& statusText) const;
 };
 

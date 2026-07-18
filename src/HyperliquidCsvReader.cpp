@@ -1,80 +1,146 @@
 #include "HyperliquidCsvReader.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <chrono>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace bookforge {
+namespace {
+
+std::string trim(const std::string& s) {
+    const auto begin = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) {
+        return std::isspace(ch);
+    });
+    const auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return std::isspace(ch);
+    }).base();
+
+    if (begin >= end) {
+        return "";
+    }
+    return std::string(begin, end);
+}
+
+std::vector<std::string> split_csv_simple(const std::string& line) {
+    std::vector<std::string> fields;
+    std::stringstream ss(line);
+    std::string item;
+
+    while (std::getline(ss, item, ',')) {
+        fields.push_back(trim(item));
+    }
+
+    return fields;
+}
+
+bool parse_bool(const std::string& value) {
+    if (value == "True" || value == "true" || value == "1") {
+        return true;
+    }
+    if (value == "False" || value == "false" || value == "0") {
+        return false;
+    }
+    throw std::runtime_error("invalid boolean value: " + value);
+}
+
+std::chrono::nanoseconds parse_timestamp_stub(const std::string&) {
+    // Keep replay deterministic without depending on wall-clock parsing.
+    // If you later want exact timestamp parsing, replace this with a real parser.
+    return std::chrono::nanoseconds{0};
+}
+
+} // namespace
 
 HyperliquidCsvReader::HyperliquidCsvReader(std::string path)
     : path_(std::move(path)) {}
 
-EventType HyperliquidCsvReader::map_event_type(const std::string& statusText) const {
-    if (statusText == "open") {
-        return EventType::New;
-    }
-    if (statusText == "filled") {
-        return EventType::Fill;
-    }
-    if (statusText == "triggered") {
-        return EventType::Trigger;
-    }
-    if (statusText.find("Rejected") != std::string::npos) {
-        return EventType::Reject;
-    }
-    if (statusText.find("canceled") != std::string::npos ||
-        statusText.find("Canceled") != std::string::npos) {
-        return EventType::Cancel;
-    }
-    return EventType::Other;
+std::vector<ExternalOrderEvent> HyperliquidCsvReader::read_all() {
+    return read_all(false, true);
 }
 
-std::vector<ExternalOrderEvent> HyperliquidCsvReader::read_all() {
-    std::ifstream in(path_);
-    if (!in) {
-        throw std::runtime_error("Failed to open CSV: " + path_);
-    }
-
-    std::string line;
-    // skip header
-    if (!std::getline(in, line)) {
-        return {};
+std::vector<ExternalOrderEvent> HyperliquidCsvReader::read_all(bool strict_mode, bool log_errors) {
+    std::ifstream file(path_);
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open CSV file: " + path_);
     }
 
     std::vector<ExternalOrderEvent> events;
-    events.reserve(100000); // just a hint
+    std::string line;
+    std::size_t line_number = 0;
+    bool header_skipped = false;
 
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
+    while (std::getline(file, line)) {
+        ++line_number;
 
-        std::stringstream ss(line);
-        std::string tsStr, priceStr, sizeStr, isAskStr, statusIdStr, statusTextStr, eventTypeStr;
+        if (trim(line).empty()) {
+            continue;
+        }
 
-        std::getline(ss, tsStr, ',');
-        std::getline(ss, priceStr, ',');
-        std::getline(ss, sizeStr, ',');
-        std::getline(ss, isAskStr, ',');
-        std::getline(ss, statusIdStr, ',');
-        std::getline(ss, statusTextStr, ',');
-        std::getline(ss, eventTypeStr, ',');
+        if (!header_skipped) {
+            header_skipped = true;
+            if (line.find("ts") != std::string::npos &&
+                line.find("limitPx") != std::string::npos) {
+                continue;
+            }
+        }
 
-        ExternalOrderEvent ev{};
+        try {
+            const auto fields = split_csv_simple(line);
+            if (fields.size() < 7) {
+                throw std::runtime_error("expected at least 7 CSV fields");
+            }
 
-        // ts: keep as raw string for now, or parse later if needed
-        // Here we store as nanoseconds since epoch = 0; you can replace with real parsing later.
-        ev.ts = std::chrono::nanoseconds{0};
+            ExternalOrderEvent ev{};
+            ev.ts = parse_timestamp_stub(fields[0]);
+            ev.price = std::stod(fields[1]);
+            ev.size = std::stod(fields[2]);
+            ev.isAsk = parse_bool(fields[3]);
+            ev.statusId = std::stoi(fields[4]);
+            ev.statusText = fields[5];
+            ev.eventType = map_event_type(fields[5]);
 
-        ev.price   = std::stod(priceStr);
-        ev.size    = std::stod(sizeStr);
-        ev.isAsk   = (isAskStr == "True" || isAskStr == "true");
-        ev.statusId   = std::stoi(statusIdStr);
-        ev.statusText = statusTextStr;
-        ev.eventType  = map_event_type(statusTextStr);
-
-        events.push_back(ev);
+            events.push_back(ev);
+        } catch (const std::exception& ex) {
+            if (log_errors) {
+                std::cerr << "Malformed Hyperliquid CSV row at line "
+                          << line_number << ": " << ex.what() << "\n";
+            }
+            if (strict_mode) {
+                throw;
+            }
+        }
     }
 
     return events;
+}
+
+EventType HyperliquidCsvReader::map_event_type(const std::string& statusText) const {
+    const std::string s = trim(statusText);
+
+    if (s == "open" || s == "resting" || s == "received") {
+        return EventType::New;
+    }
+    if (s == "canceled" || s == "cancelled") {
+        return EventType::Cancel;
+    }
+    if (s == "filled" || s == "partiallyFilled" || s == "partialFill") {
+        return EventType::Fill;
+    }
+    if (s == "triggered" || s == "trigger") {
+        return EventType::Trigger;
+    }
+    if (s.find("Rejected") != std::string::npos ||
+        s.find("rejected") != std::string::npos) {
+        return EventType::Reject;
+    }
+
+    return EventType::Other;
 }
 
 } // namespace bookforge
