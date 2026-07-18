@@ -43,6 +43,10 @@ add_executable(test_matching_engine
   tests/cpp/test_matching_engine.cpp
 )
 
+add_executable(test_hyperliquid_matching_engine_adapter
+  tests/cpp/test_hyperliquid_matching_engine_adapter.cpp
+)
+
 target_link_libraries(test_order_book PRIVATE
   bookforge_core
   GTest::gtest_main
@@ -53,9 +57,24 @@ target_link_libraries(test_matching_engine PRIVATE
   GTest::gtest_main
 )
 
+target_link_libraries(test_hyperliquid_matching_engine_adapter PRIVATE
+  bookforge_core
+  GTest::gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(test_order_book)
 gtest_discover_tests(test_matching_engine)
+gtest_discover_tests(test_hyperliquid_matching_engine_adapter)
+
+add_executable(hyperliquid_replay_main
+  src/hyperliquid_replay_main.cpp
+  src/HyperliquidCsvReader.cpp
+)
+
+target_link_libraries(hyperliquid_replay_main PRIVATE
+  bookforge_core
+)
 
 add_executable(benchmark_order_book
   bench/benchmark_order_book.cpp
