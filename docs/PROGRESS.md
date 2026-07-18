@@ -255,3 +255,98 @@ ts,limitPx,sz,isAsk,statusId,status,eventType
 - Replace the stub path with the real matching engine interface.
 - Define how `New`, `Cancel`, and `Fill` should map into internal engine actions.
 - Add replay-focused tests for parsing, event classification, and adapter behavior.
+
+## 2026-07-17 — Replay foundation and testing
+
+### Summary
+
+Today’s work pushed Bookforge’s replay layer from an early prototype into a **deterministic, test-backed subsystem**.
+
+Main outcomes:
+- Closed out the Phase 1 testing checklist.
+- Added a Hyperliquid replay adapter that drives the real matching engine.
+- Introduced replay configuration and deterministic replay runner abstractions.
+- Hardened the Hyperliquid CSV reader with malformed-row handling.
+- Added parser tests, bounded replay tests, and replay regression coverage.
+- Updated the Phase 2 checklist to reflect completed replay infrastructure work.
+
+### Completed work
+
+#### Core documentation and checklist
+- Documented order book invariants and ownership rules.
+- Marked the Phase 1 testing checklist complete.
+
+#### Hyperliquid replay integration
+- Added a Hyperliquid-specific adapter that maps external replay events into matching engine actions.
+- Wired the Hyperliquid replay executable into the real matching engine adapter.
+- Added integration tests for Hyperliquid replay adapter behavior.
+- Registered Hyperliquid replay adapter tests in CMake.
+
+#### Replay infrastructure
+- Added `ReplayConfig` to hold replay parameters such as source, file path, symbol, offsets, limits, and logging settings.
+- Added `ReplayRunner` to replay events in deterministic input order.
+- Wired the replay entry point to use the new config and runner abstractions.
+
+#### CSV reader hardening
+- Extended `HyperliquidCsvReader` with strict and non-strict parsing modes.
+- Added malformed-row handling with optional logging.
+- Kept replay behavior deterministic even when skipping bad rows in non-strict mode.
+
+#### Test coverage
+- Added parser tests for valid rows, malformed rows, strict-mode failure, and unknown status mapping.
+- Added bounded replay tests for `start_offset` and `max_events`.
+- Added replay regression coverage and registered it in CMake.
+
+### Commits
+
+- `941aa4a` — Add Hyperliquid adapter for matching engine replay events
+- `2a9cdc7` — Wire Hyperliquid replay main into real matching engine adapter
+- `05e908b` — Add replay adapter integration tests for Hyperliquid events
+- `e1c7a0b` — Register Hyperliquid replay adapter tests in CMake
+- `0d28830` — Document order book invariants and ownership rules
+- `0493c6d` — Mark Phase 1 testing checklist complete
+- `8448044` — Add replay config and runner interfaces
+- `8215d4a` — Add malformed-row handling to Hyperliquid CSV reader
+- `07aee51` — Wire replay main to config and deterministic runner
+- `d7487a6` — Add parser tests for Hyperliquid CSV reader
+- `5a2c8ab` — Register replay runner and CSV reader tests in CMake
+- `ba8ab8a` — Update Phase 2 replay checklist
+- `e16280b` — Add bounded replay tests for deterministic runner
+- `7fea817` — Register replay regression
+
+### Phase status
+
+#### Phase 1 — C++ core
+Phase 1 testing is now marked complete.
+
+#### Phase 2 — Replay foundation
+Completed today:
+- Stable external event model
+- Replay interfaces in `src/replay/`
+- CSV / flat-file replay reader
+- Deterministic event ordering guarantees
+- Replay statistics and instrumentation
+- Replay logging for debugging
+- Malformed-row error handling
+- Replay configuration object
+
+Also strengthened:
+- Parser tests for malformed / missing data
+- Bounded replay testing
+- Replay regression coverage
+
+### Remaining Phase 2 work
+
+Still open:
+- Support LOBSTER-style message replay
+- Document source-specific field mappings
+- Finalize fixture-based replay regression tests if more stable fixtures are needed
+
+### Notes
+
+The replay path is now strong enough to support:
+- controlled sample replays,
+- regression-friendly testing,
+- future expansion to additional historical data sources.
+
+The next best task is likely **documenting source-specific field mappings**, followed by **LOBSTER-style replay support**.

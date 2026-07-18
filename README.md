@@ -56,19 +56,25 @@ Current completed work:
 - First version of the C++ `OrderBook`
 - First version of the C++ `PriceLevel`
 - Unit tests for core order book behavior
+- Documented core order book invariants and ownership rules
 - Initial Hyperliquid order-status data extraction workflow
 - Enriched sample event dataset generation
-- First version of a CSV-based replay reader
-- First version of a replay entry point for external event streams
+- CSV-based replay reader for Hyperliquid-style enriched events
+- Replay configuration and deterministic replay runner
+- Hyperliquid replay adapter wired into the real matching engine
+- Parser tests for the Hyperliquid CSV reader
+- Replay adapter integration tests
+- Bounded replay tests for deterministic replay behavior
+- Replay regression wiring through CMake
 
 Current in-progress work:
-- Event replay integration with the internal matching engine
-- Replay adapter layer from external exchange events into internal engine actions
+- LOBSTER-style replay support
+- Source-specific field mapping documentation
 - Refining the historical data model for realistic cancel / fill handling
+- Expanding replay regression coverage with stable fixtures
 
 Planned next work:
-- Real matching engine integration for replayed events
-- More robust event replay abstractions
+- More complete event replay abstractions across multiple data sources
 - Feature exporter
 - pybind11 bridge
 - Python ML pipeline
@@ -84,11 +90,12 @@ Bookforge/
 │   ├── core/                  # order, price level, order book
 │   ├── features/              # feature extraction from book state
 │   ├── matching/              # matching engine logic
-│   ├── replay/                # historical message replay / adapters
+│   ├── replay/                # historical message replay / adapters / config
 │   ├── ExternalOrderEvent.hpp
 │   ├── HyperliquidCsvReader.hpp
 │   ├── HyperliquidCsvReader.cpp
-│   ├── HyperliquidMessageReplayer.hpp
+│   ├── HyperliquidMatchingEngineAdapter.hpp
+│   ├── HyperliquidMatchingEngineAdapter.cpp
 │   └── hyperliquid_replay_main.cpp
 ├── bindings/                  # pybind11 bindings
 ├── python/
@@ -98,7 +105,8 @@ Bookforge/
 │   └── dashboard/             # React frontend
 ├── tests/
 │   ├── cpp/                   # GoogleTest suites
-│   └── python/                # Pytest suites
+│   ├── python/                # Pytest suites
+│   └── fixtures/              # replay fixture data
 ├── data/
 │   ├── lobster_sample/
 │   └── processed/
@@ -119,8 +127,16 @@ The order book keeps track of:
 Each price level maintains FIFO order priority so that older orders at the same price execute first.
 
 ### Event replay
-The replay layer is being designed to ingest **external market events** and map them into internal engine actions. The current prototype uses an enriched Hyperliquid sample CSV with fields like:
+The replay layer ingests **external market events** and maps them into internal engine actions.
 
+The current replay path uses:
+- `ExternalOrderEvent` as a stable external event model
+- `HyperliquidCsvReader` for enriched CSV parsing
+- `ReplayConfig` for source and replay settings
+- `ReplayRunner` for deterministic replay traversal
+- `HyperliquidMatchingEngineAdapter` to bridge external events into engine-facing actions
+
+Current event fields include:
 - `ts`
 - `limitPx`
 - `sz`
@@ -129,7 +145,7 @@ The replay layer is being designed to ingest **external market events** and map 
 - `status`
 - `eventType`
 
-The current `eventType` abstraction includes:
+Current `eventType` values include:
 - `New`
 - `Cancel`
 - `Fill`
@@ -137,7 +153,7 @@ The current `eventType` abstraction includes:
 - `Trigger`
 - `Other`
 
-This creates a clean boundary between exchange-specific raw data and the internal engine API.[web:1096][web:1428]
+This keeps exchange-specific parsing separate from the core engine and makes future multi-provider replay support easier.
 
 ### Market microstructure features
 The project will compute features such as:
@@ -162,7 +178,8 @@ Current approach:
 1. Extract raw order-status data from downloaded archives.
 2. Map raw `statusId` values through lookup tables.
 3. Enrich the sample into a readable CSV with semantic event labels.
-4. Replay that CSV from C++ through a source adapter layer.
+4. Parse the enriched CSV into `ExternalOrderEvent` values.
+5. Replay those events through the deterministic replay runner and matching engine adapter.
 
 Example enriched columns:
 
@@ -173,7 +190,7 @@ ts,limitPx,sz,isAsk,statusId,status,eventType
 
 Important limitation:
 - the current sample is useful for replay experiments and event classification,
-- but it does **not yet provide perfect order lifecycle reconstruction** for every internal engine behavior because exact order-ID-based cancel/fill linkage is still being refined.[web:1096]
+- but it does **not yet provide perfect order lifecycle reconstruction** for every internal engine behavior because exact order-ID-based cancel/fill linkage is still being refined.
 
 ---
 
@@ -252,22 +269,29 @@ pytest tests/python -q
 
 ## Replay development
 
-The current replay prototype is centered on a CSV-driven event stream.
+The current replay pipeline is centered on a deterministic event stream.
 
 Main components:
 - `ExternalOrderEvent.hpp` — external replay event model
 - `HyperliquidCsvReader.*` — parser for enriched Hyperliquid CSV samples
-- `HyperliquidMessageReplayer.hpp` — replay orchestration
+- `ReplayConfig.hpp` — replay configuration object
+- `ReplayRunner.*` — deterministic replay traversal
+- `HyperliquidMatchingEngineAdapter.*` — bridge into the matching engine
 - `hyperliquid_replay_main.cpp` — standalone replay entry point
 
-Near-term replay design:
-- `New` events should become internal passive order submissions
-- `Cancel` events should eventually map to cancel logic once external/internal ID handling is added
-- `Fill` events should eventually map to fill or aggressive execution handling
+Current replay behavior:
+- `New` events can become internal passive order submissions
 - `Reject` events can be logged or ignored
+- `Cancel` and `Fill` handling is still evolving as external/internal ID linkage becomes more realistic
 - `Trigger` and `Other` can remain deferred until the engine model matures
 
-This adapter-driven design keeps source-specific logic outside the core order book and makes it easier to support multiple historical data providers later.[web:1428]
+Testing coverage now includes:
+- parser tests for malformed and valid CSV rows,
+- integration tests for replay adapter behavior,
+- bounded replay tests for deterministic ordering and replay limits,
+- replay regression registration through CMake.
+
+This adapter-driven design keeps source-specific logic outside the core order book and makes it easier to support multiple historical data providers later.
 
 ---
 
@@ -305,6 +329,7 @@ Project planning and notes live in `docs/`:
 - [x] Price level
 - [x] Order book skeleton
 - [x] Basic order book tests
+- [x] Core order book invariants documented
 - [ ] More edge-case tests
 - [ ] Benchmarks
 
@@ -313,9 +338,14 @@ Project planning and notes live in `docs/`:
 - [x] Hyperliquid sample extraction workflow
 - [x] Enriched sample CSV generation
 - [x] First CSV replay reader
-- [x] First replay executable
-- [ ] Adapter from external replay events into real engine calls
-- [ ] Matching engine integration
+- [x] Replay configuration object
+- [x] Deterministic replay runner
+- [x] Hyperliquid adapter into matching engine
+- [x] Replay adapter integration tests
+- [x] Parser tests for replay input
+- [x] Bounded replay tests
+- [ ] LOBSTER-style message replay
+- [ ] Source-specific field mapping docs
 - [ ] Snapshot serialization
 
 ### Phase 3 — Feature extraction
@@ -365,7 +395,7 @@ That makes it a strong portfolio piece for roles across:
 - This repo is educational and research-oriented.
 - It is **not** a production trading system.
 - Historical data formats and replay logic will evolve as the project grows.
-- The current Hyperliquid replay path is an early prototype and should be treated as a stepping stone toward a more complete event-driven matching workflow.[web:1096]
+- The current Hyperliquid replay path is an early but now test-backed prototype and should be treated as a stepping stone toward a more complete event-driven matching workflow.
 
 ---
 
