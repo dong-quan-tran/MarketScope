@@ -1,58 +1,46 @@
 #include "replay/ReplayRunner.hpp"
 
+#include <cstddef>
 #include <iostream>
 
 namespace bookforge {
 
-bool ReplayRunner::Run(HyperliquidMatchingEngineAdapter& adapter,
+bool ReplayRunner::Run(IReplayAdapter& adapter,
                        const std::vector<ExternalOrderEvent>& events) const {
-    const std::uint64_t total = static_cast<std::uint64_t>(events.size());
+    const std::size_t total = events.size();
+    const std::size_t start =
+        static_cast<std::size_t>(config_.start_offset > total ? total : config_.start_offset);
 
-    const std::uint64_t start = std::min(config_.start_offset, total);
-    std::uint64_t limit = total;
-    if (config_.max_events > 0) {
-        limit = std::min(total, start + config_.max_events);
-    }
+    std::size_t processed = 0;
 
-    if (config_.log_summary) {
-        std::cout << "Replaying events from " << start
-                  << " to " << limit << " (total available: " << total << ")\n";
-    }
+    for (std::size_t i = start; i < total; ++i) {
+        if (config_.max_events != 0 &&
+            processed >= static_cast<std::size_t>(config_.max_events)) {
+            break;
+        }
 
-    // Deterministic ordering guarantee:
-    // We process events strictly in the order they appear in the input vector,
-    // from index `start` to `limit - 1`, with no reordering or parallelism.
-    for (std::uint64_t i = start; i < limit; ++i) {
-        const auto& ev = events[static_cast<std::size_t>(i)];
+        adapter.OnEvent(events[i]);
+        ++processed;
 
-        // At this level we assume the CSV reader has already validated rows.
-        // Errors that occur while handling events are surfaced by adapter logic.
-        adapter.OnEvent(ev);
-
-        if (config_.log_every_n > 0 && ((i - start + 1) % config_.log_every_n == 0)) {
-            const auto& stats = adapter.Stats();
-            std::cout << "Progress: " << (i - start + 1)
-                      << " events processed; trades=" << stats.generatedTrades
-                      << " ignored=" << stats.ignoredEvents << "\n";
+        if (config_.log_every_n != 0 &&
+            processed % static_cast<std::size_t>(config_.log_every_n) == 0) {
+            std::cout << "[ReplayRunner] processed=" << processed << '\n';
         }
     }
 
     if (config_.log_summary) {
-        const auto& stats = adapter.Stats();
-        std::cout << "Replay complete.\n"
-                  << "Total events processed: " << (limit - start) << "\n"
-                  << "New=" << stats.newCount
-                  << " Cancel=" << stats.cancelCount
-                  << " Fill=" << stats.fillCount
-                  << " Reject=" << stats.rejectCount
-                  << " Trigger=" << stats.triggerCount
-                  << " Other=" << stats.otherCount << "\n"
-                  << "Submitted orders=" << stats.submittedOrders
-                  << " Ignored events=" << stats.ignoredEvents
-                  << " Generated trades=" << stats.generatedTrades << "\n";
+        const auto& m = adapter.Metrics();
+        std::cout
+            << "[ReplayRunner] summary"
+            << " processed=" << processed
+            << " submitted=" << m.submitted
+            << " ignored=" << m.ignored
+            << " rejected=" << m.rejected
+            << " unsupported=" << m.unsupported
+            << '\n';
     }
 
     return true;
 }
 
-}  // namespace bookforge
+} // namespace bookforge
