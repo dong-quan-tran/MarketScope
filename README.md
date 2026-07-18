@@ -315,7 +315,7 @@ Project planning and notes live in `docs/`:
 
 - `docs/BLUEPRINT.md` — master implementation plan
 - `docs/ARCHITECTURE.md` — design choices and benchmark notes
-- `docs/DATA_GUIDE.md` — data format notes
+- `docs/DATA_GUIDE.md` — **source-specific field mappings and replay data model**
 - `docs/INTERVIEW_PREP.md` — talking points and likely interview questions
 - `docs/WEEK_BY_WEEK.md` — development progress log
 - `docs/PROGRESS.md` — current implementation progress
