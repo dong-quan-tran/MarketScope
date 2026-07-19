@@ -38,6 +38,13 @@ void FeatureCsvWriter::Write(const std::string& path,
         << ",ofi_l1"
         << ",ofi_lN"
         << ",weighted_ofi_lN"
+        << ",rolling_mean_spread"
+        << ",rolling_mean_l1_total_depth"
+        << ",rolling_mean_lN_total_depth"
+        << ",rolling_mid_return"
+        << ",rolling_realized_mid_vol"
+        << ",rolling_mean_abs_ofi_l1"
+        << ",rolling_mean_abs_ofi_lN"
         << "\n";
 
     for (const auto& row : rows) {
@@ -70,6 +77,20 @@ void FeatureCsvWriter::Write(const std::string& path,
         WriteOptional(out, row.ofi_lN);
         out << ",";
         WriteOptional(out, row.weighted_ofi_lN);
+        out << ",";
+        WriteOptional(out, row.rolling_mean_spread);
+        out << ",";
+        WriteOptional(out, row.rolling_mean_l1_total_depth);
+        out << ",";
+        WriteOptional(out, row.rolling_mean_lN_total_depth);
+        out << ",";
+        WriteOptional(out, row.rolling_mid_return);
+        out << ",";
+        WriteOptional(out, row.rolling_realized_mid_vol);
+        out << ",";
+        WriteOptional(out, row.rolling_mean_abs_ofi_l1);
+        out << ",";
+        WriteOptional(out, row.rolling_mean_abs_ofi_lN);
         out << "\n";
     }
 }

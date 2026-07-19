@@ -39,6 +39,7 @@ add_library(bookforge_core
   src/features/FeatureBuilder.cpp
   src/features/FeatureCsvWriter.cpp
   src/features/OfiFeatureBuilder.cpp
+  src/features/RollingFeatureBuilder.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC
