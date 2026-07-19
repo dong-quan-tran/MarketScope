@@ -106,13 +106,17 @@ add_executable(test_replay_regression
   src/replay/ReplayRunner.cpp
 )
 
+target_link_libraries(test_replay_regression PRIVATE
+  bookforge_core
+  GTest::gtest_main
+)
+
 target_include_directories(test_replay_regression PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_replay_regression PRIVATE
-  bookforge_core
-  GTest::gtest_main
+target_compile_definitions(test_replay_regression PRIVATE
+  BOOKFORGE_TEST_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
 )
 
 gtest_discover_tests(test_replay_regression)
@@ -154,3 +158,14 @@ add_executable(benchmark_order_book
 target_link_libraries(benchmark_order_book PRIVATE
   bookforge_core
 )
+
+add_executable(test_matching_engine_integration
+  tests/cpp/test_matching_engine_integration.cpp
+)
+
+target_link_libraries(test_matching_engine_integration PRIVATE
+  bookforge_core
+  GTest::gtest_main
+)
+
+gtest_discover_tests(test_matching_engine_integration)
