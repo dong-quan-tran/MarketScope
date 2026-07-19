@@ -35,6 +35,9 @@ void FeatureCsvWriter::Write(const std::string& path,
         << ",lN_bid_qty_sum"
         << ",lN_ask_qty_sum"
         << ",lN_depth_imbalance"
+        << ",ofi_l1"
+        << ",ofi_lN"
+        << ",weighted_ofi_lN"
         << "\n";
 
     for (const auto& row : rows) {
@@ -61,6 +64,12 @@ void FeatureCsvWriter::Write(const std::string& path,
         WriteOptional(out, row.lN_ask_qty_sum);
         out << ",";
         WriteOptional(out, row.lN_depth_imbalance);
+        out << ",";
+        WriteOptional(out, row.ofi_l1);
+        out << ",";
+        WriteOptional(out, row.ofi_lN);
+        out << ",";
+        WriteOptional(out, row.weighted_ofi_lN);
         out << "\n";
     }
 }

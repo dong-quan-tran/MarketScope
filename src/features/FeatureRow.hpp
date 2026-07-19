@@ -26,6 +26,7 @@ struct FeatureRow {
 
     std::optional<double> ofi_l1;
     std::optional<double> ofi_lN;
+    std::optional<double> weighted_ofi_lN;
 };
 
 }  // namespace bookforge
