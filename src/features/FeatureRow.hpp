@@ -23,6 +23,9 @@ struct FeatureRow {
     std::optional<double> lN_bid_qty_sum;
     std::optional<double> lN_ask_qty_sum;
     std::optional<double> lN_depth_imbalance;
+
+    std::optional<double> ofi_l1;
+    std::optional<double> ofi_lN;
 };
 
 }  // namespace bookforge

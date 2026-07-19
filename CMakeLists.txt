@@ -38,6 +38,7 @@ add_library(bookforge_core
   src/snapshot/SnapshotBinaryDeserializer.cpp
   src/features/FeatureBuilder.cpp
   src/features/FeatureCsvWriter.cpp
+  src/features/OfiFeatureBuilder.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC
