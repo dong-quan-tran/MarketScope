@@ -9,6 +9,7 @@
 #include "features/FeatureCsvWriter.hpp"
 #include "snapshot/BookSnapshot.hpp"
 #include "features/OfiFeatureBuilder.hpp"
+#include "features/RollingFeatureBuilder.hpp"
 
 namespace bookforge {
 namespace {
@@ -357,6 +358,85 @@ TEST(FeatureBuilderTest, WeightedOfiMatchesUnweightedWhenOnlyLevelOneChanges) {
     // L1 bid = +3, L1 ask = +3, L2 unchanged => total 6
     EXPECT_DOUBLE_EQ(*rows[1].ofi_lN, 6.0);
     EXPECT_DOUBLE_EQ(*rows[1].weighted_ofi_lN, 6.0);
+}
+
+TEST(FeatureBuilderTest, RollingContextComputesMeanSpreadAndDepth) {
+    std::vector<FeatureRow> rows(3);
+
+    rows[0].spread = 1.0;
+    rows[0].l1_bid_qty = 10.0;
+    rows[0].l1_ask_qty = 20.0;
+    rows[0].lN_bid_qty_sum = 30.0;
+    rows[0].lN_ask_qty_sum = 40.0;
+
+    rows[1].spread = 2.0;
+    rows[1].l1_bid_qty = 20.0;
+    rows[1].l1_ask_qty = 10.0;
+    rows[1].lN_bid_qty_sum = 40.0;
+    rows[1].lN_ask_qty_sum = 20.0;
+
+    rows[2].spread = 3.0;
+    rows[2].l1_bid_qty = 30.0;
+    rows[2].l1_ask_qty = 30.0;
+    rows[2].lN_bid_qty_sum = 50.0;
+    rows[2].lN_ask_qty_sum = 50.0;
+
+    RollingFeatureBuilder::AddRollingContextFeatures(rows, 2);
+
+    ASSERT_TRUE(rows[2].rolling_mean_spread.has_value());
+    EXPECT_DOUBLE_EQ(*rows[2].rolling_mean_spread, 2.5);
+
+    ASSERT_TRUE(rows[2].rolling_mean_l1_total_depth.has_value());
+    EXPECT_DOUBLE_EQ(*rows[2].rolling_mean_l1_total_depth, 45.0);
+
+    ASSERT_TRUE(rows[2].rolling_mean_lN_total_depth.has_value());
+    EXPECT_DOUBLE_EQ(*rows[2].rolling_mean_lN_total_depth, 80.0);
+}
+TEST(FeatureBuilderTest, RollingContextComputesMidReturnAndRealizedVol) {
+    std::vector<FeatureRow> rows(3);
+
+    rows[0].mid_price = 100.0;
+    rows[1].mid_price = 101.0;
+    rows[2].mid_price = 103.0;
+
+    RollingFeatureBuilder::AddRollingContextFeatures(rows, 3);
+
+    ASSERT_TRUE(rows[2].rolling_mid_return.has_value());
+    EXPECT_NEAR(*rows[2].rolling_mid_return, 0.03, 1e-12);
+
+    ASSERT_TRUE(rows[2].rolling_realized_mid_vol.has_value());
+
+    const double r1 = (101.0 / 100.0) - 1.0;
+    const double r2 = (103.0 / 101.0) - 1.0;
+    const double expected_vol = std::sqrt(r1 * r1 + r2 * r2);
+
+    EXPECT_NEAR(*rows[2].rolling_realized_mid_vol, expected_vol, 1e-12);
+}
+TEST(FeatureBuilderTest, RollingContextComputesMeanAbsoluteOfi) {
+    std::vector<FeatureRow> rows(3);
+
+    rows[0].ofi_l1 = -2.0;
+    rows[0].ofi_lN = -4.0;
+
+    rows[1].ofi_l1 = 6.0;
+    rows[1].ofi_lN = 8.0;
+
+    rows[2].ofi_l1 = -4.0;
+    rows[2].ofi_lN = 2.0;
+
+    RollingFeatureBuilder::AddRollingContextFeatures(rows, 2);
+
+    ASSERT_TRUE(rows[2].rolling_mean_abs_ofi_l1.has_value());
+    EXPECT_DOUBLE_EQ(*rows[2].rolling_mean_abs_ofi_l1, 5.0);
+
+    ASSERT_TRUE(rows[2].rolling_mean_abs_ofi_lN.has_value());
+    EXPECT_DOUBLE_EQ(*rows[2].rolling_mean_abs_ofi_lN, 5.0);
+}
+TEST(FeatureBuilderTest, RollingContextRejectsZeroWindow) {
+    std::vector<FeatureRow> rows(1);
+    EXPECT_THROW(
+        RollingFeatureBuilder::AddRollingContextFeatures(rows, 0),
+        std::runtime_error);
 }
 
 }  // namespace bookforge
