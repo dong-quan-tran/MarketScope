@@ -8,6 +8,7 @@
 #include "features/FeatureBuilder.hpp"
 #include "features/FeatureCsvWriter.hpp"
 #include "snapshot/BookSnapshot.hpp"
+#include "features/OfiFeatureBuilder.hpp"
 
 namespace bookforge {
 namespace {
@@ -178,6 +179,98 @@ TEST(FeatureBuilderTest, CsvWriterProducesStableHeaderAndRows) {
     EXPECT_FALSE(row.empty());
     EXPECT_NE(row.find("TEST"), std::string::npos);
     EXPECT_NE(row.find("100.5"), std::string::npos);
+}
+
+TEST(FeatureBuilderTest, OfiL1HandlesPriceAndSizeChanges) {
+    using DL = DepthLevelSnapshot;
+
+    BookSnapshot prev{};
+    prev.symbol = "TEST";
+    prev.replay_event_index = 1;
+    prev.replay_timestamp_ns = 100;
+    prev.bids = {DL{100.0, 10}};
+    prev.asks = {DL{101.0, 8}};
+
+    BookSnapshot curr{};
+    curr.symbol = "TEST";
+    curr.replay_event_index = 2;
+    curr.replay_timestamp_ns = 200;
+    curr.bids = {DL{101.0, 12}};  // bid price up, new volume
+    curr.asks = {DL{101.0, 6}};   // ask price same, volume down
+
+    auto rows = FeatureBuilder::BuildFromSnapshots({prev, curr}, 1);
+    OfiFeatureBuilder::AddOfiFeatures(rows, {prev, curr}, 1);
+
+    ASSERT_EQ(rows.size(), 2u);
+    EXPECT_FALSE(rows[0].ofi_l1.has_value());
+
+    ASSERT_TRUE(rows[1].ofi_l1.has_value());
+    const double ofi_l1 = *rows[1].ofi_l1;
+
+    // Bid OFI: price up => +v_curr = +12
+    // Ask OFI: price same => v_prev - v_curr = 8 - 6 = +2
+    // Total OFI = 14
+    EXPECT_DOUBLE_EQ(ofi_l1, 14.0);
+}
+
+TEST(FeatureBuilderTest, OfiLNAggregatesAcrossLevels) {
+    using DL = DepthLevelSnapshot;
+
+    BookSnapshot prev{};
+    prev.symbol = "TEST";
+    prev.replay_event_index = 1;
+    prev.replay_timestamp_ns = 100;
+    prev.bids = {DL{100.0, 10}, DL{99.0, 5}};
+    prev.asks = {DL{101.0, 8}, DL{102.0, 4}};
+
+    BookSnapshot curr{};
+    curr.symbol = "TEST";
+    curr.replay_event_index = 2;
+    curr.replay_timestamp_ns = 200;
+    curr.bids = {DL{100.0, 12}, DL{99.0, 5}};  // L1 bid size up
+    curr.asks = {DL{101.0, 6}, DL{102.0, 6}};  // L1 ask size down, L2 ask size up
+
+    auto rows = FeatureBuilder::BuildFromSnapshots({prev, curr}, 2);
+    OfiFeatureBuilder::AddOfiFeatures(rows, {prev, curr}, 2);
+
+    ASSERT_TRUE(rows[1].ofi_lN.has_value());
+    const double ofi_lN = *rows[1].ofi_lN;
+
+    // Level 1 bid: v_curr - v_prev = 12 - 10 = +2
+    // Level 1 ask: v_prev - v_curr = 8 - 6 = +2
+    // Level 2 bid: unchanged => 0
+    // Level 2 ask: v_prev - v_curr = 4 - 6 = -2
+    // Total OFI_LN = 2 + 2 + 0 - 2 = 2
+    EXPECT_DOUBLE_EQ(ofi_lN, 2.0);
+}
+
+TEST(FeatureBuilderTest, OfiHandlesSideAppearingAndDisappearing) {
+    using DL = DepthLevelSnapshot;
+
+    BookSnapshot prev{};
+    prev.symbol = "TEST";
+    prev.replay_event_index = 1;
+    prev.replay_timestamp_ns = 100;
+    prev.bids = {};
+    prev.asks = {DL{101.0, 5}};
+
+    BookSnapshot curr{};
+    curr.symbol = "TEST";
+    curr.replay_event_index = 2;
+    curr.replay_timestamp_ns = 200;
+    curr.bids = {DL{100.0, 7}};
+    curr.asks = {};
+
+    auto rows = FeatureBuilder::BuildFromSnapshots({prev, curr}, 1);
+    OfiFeatureBuilder::AddOfiFeatures(rows, {prev, curr}, 1);
+
+    ASSERT_TRUE(rows[1].ofi_l1.has_value());
+    const double ofi_l1 = *rows[1].ofi_l1;
+
+    // Bid side: appears => +v_curr = +7
+    // Ask side: disappears => +v_prev (is_bid_side=false) = +5
+    // Total OFI_L1 = 12
+    EXPECT_DOUBLE_EQ(ofi_l1, 12.0);
 }
 
 }  // namespace bookforge
