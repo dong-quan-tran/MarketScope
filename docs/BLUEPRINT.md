@@ -212,26 +212,26 @@ Make book state exportable, comparable, and reproducible across replay checkpoin
 - [x] Export best bid / ask, spread, mid-price
 - [x] Export replay timestamps and event counters
 - [x] Support CSV snapshot output
-- [ ] Support binary snapshot output
+- [x] Support binary snapshot output
 - [x] Add snapshot comparison tools
 - [x] Add snapshot builder from live engine/book state
 - [x] Wire snapshot sources into `bookforge_core`
 - [x] Add `test_snapshot` target in CMake
 - [x] Fix snapshot include/build issues on Windows
-- [ ] Verify `test_snapshot` is discovered by CTest
+- [x] Verify `test_snapshot` is discovered by CTest
 
 ### Testing / done criteria
 - [x] Snapshot round-trip tests
 - [x] Snapshot schema documentation
-- [ ] Validation against replay checkpoints
+- [x] Validation against replay checkpoints
 - [x] Builder unit tests for best bid / ask / spread / mid-price
 - [x] Top-N depth export tests
 - [x] Comparator mismatch reporting tests
 - [x] CSV shape / header stability tests
 - [x] Add `SnapshotDeserializer` for CSV round-trip support
 - [x] Add CSV header validation
-- [ ] Full Phase 5 test pass in CTest
-- [ ] No `_NOT_BUILT` snapshot placeholder in CTest output
+- [x] Full Phase 5 test pass in CTest
+- [x] No `_NOT_BUILT` snapshot placeholder in CTest output
 
 
 ---
@@ -242,19 +242,19 @@ Make book state exportable, comparable, and reproducible across replay checkpoin
 Turn replayed book state into usable microstructure features.
 
 ### Tasks
-- [ ] Compute best bid / ask and spread over time
-- [ ] Compute mid-price over time
-- [ ] Compute top-level depth imbalance
-- [ ] Compute multi-level depth imbalance
+- [x] Compute best bid / ask and spread over time
+- [x] Compute mid-price over time
+- [x] Compute top-level depth imbalance
+- [x] Compute multi-level depth imbalance
 - [ ] Compute OFI for levels 1–5
 - [ ] Add weighted OFI
 - [ ] Add rolling liquidity / volatility context features
-- [ ] Define feature export format
-- [ ] Add feature naming and schema conventions
+- [x] Define feature export format
+- [x] Add feature naming and schema conventions
 
 ### Testing / done criteria
-- [ ] Feature unit tests
-- [ ] Small fixture-based expected-value tests
+- [x] Feature unit tests
+- [x] Small fixture-based expected-value tests
 - [ ] Feature export validated in Python
 
 ---
