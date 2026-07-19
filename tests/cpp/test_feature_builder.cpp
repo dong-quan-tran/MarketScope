@@ -172,7 +172,7 @@ TEST(FeatureBuilderTest, CsvWriterProducesStableHeaderAndRows) {
     std::string header;
     std::getline(in, header);
     EXPECT_EQ(header,
-              "symbol,replay_event_index,replay_timestamp_ns,best_bid,best_ask,spread,mid_price,l1_bid_qty,l1_ask_qty,l1_depth_imbalance,lN_bid_qty_sum,lN_ask_qty_sum,lN_depth_imbalance");
+          "symbol,replay_event_index,replay_timestamp_ns,best_bid,best_ask,spread,mid_price,l1_bid_qty,l1_ask_qty,l1_depth_imbalance,lN_bid_qty_sum,lN_ask_qty_sum,lN_depth_imbalance,ofi_l1,ofi_lN,weighted_ofi_lN");
 
     std::string row;
     std::getline(in, row);
@@ -271,6 +271,92 @@ TEST(FeatureBuilderTest, OfiHandlesSideAppearingAndDisappearing) {
     // Ask side: disappears => +v_prev (is_bid_side=false) = +5
     // Total OFI_L1 = 12
     EXPECT_DOUBLE_EQ(ofi_l1, 12.0);
+}
+
+TEST(FeatureBuilderTest, WeightedOfiFirstRowIsEmpty) {
+    using DL = DepthLevelSnapshot;
+
+    BookSnapshot prev{};
+    prev.symbol = "TEST";
+    prev.replay_event_index = 1;
+    prev.replay_timestamp_ns = 100;
+    prev.bids = {DL{100.0, 10}};
+    prev.asks = {DL{101.0, 8}};
+
+    BookSnapshot curr{};
+    curr.symbol = "TEST";
+    curr.replay_event_index = 2;
+    curr.replay_timestamp_ns = 200;
+    curr.bids = {DL{101.0, 12}};
+    curr.asks = {DL{101.0, 6}};
+
+    auto rows = FeatureBuilder::BuildFromSnapshots({prev, curr}, 1);
+    OfiFeatureBuilder::AddOfiFeatures(rows, {prev, curr}, 1);
+
+    EXPECT_FALSE(rows[0].weighted_ofi_lN.has_value());
+    ASSERT_TRUE(rows[1].weighted_ofi_lN.has_value());
+}
+
+TEST(FeatureBuilderTest, WeightedOfiDiscountsDeeperLevels) {
+    using DL = DepthLevelSnapshot;
+
+    BookSnapshot prev{};
+    prev.symbol = "TEST";
+    prev.replay_event_index = 1;
+    prev.replay_timestamp_ns = 100;
+    prev.bids = {DL{100.0, 10}, DL{99.0, 10}};
+    prev.asks = {DL{101.0, 10}, DL{102.0, 10}};
+
+    BookSnapshot curr{};
+    curr.symbol = "TEST";
+    curr.replay_event_index = 2;
+    curr.replay_timestamp_ns = 200;
+    curr.bids = {DL{100.0, 12}, DL{99.0, 14}};
+    curr.asks = {DL{101.0, 10}, DL{102.0, 10}};
+
+    auto rows = FeatureBuilder::BuildFromSnapshots({prev, curr}, 2);
+    OfiFeatureBuilder::AddOfiFeatures(rows, {prev, curr}, 2);
+
+    ASSERT_TRUE(rows[1].ofi_lN.has_value());
+    ASSERT_TRUE(rows[1].weighted_ofi_lN.has_value());
+
+    // Unweighted:
+    // L1 bid = +2, L2 bid = +4, asks unchanged => total 6
+    EXPECT_DOUBLE_EQ(*rows[1].ofi_lN, 6.0);
+
+    // Weighted:
+    // L1 weight 1.0 => 1.0 * 2 = 2
+    // L2 weight 0.5 => 0.5 * 4 = 2
+    // Total = 4
+    EXPECT_DOUBLE_EQ(*rows[1].weighted_ofi_lN, 4.0);
+}
+
+TEST(FeatureBuilderTest, WeightedOfiMatchesUnweightedWhenOnlyLevelOneChanges) {
+    using DL = DepthLevelSnapshot;
+
+    BookSnapshot prev{};
+    prev.symbol = "TEST";
+    prev.replay_event_index = 1;
+    prev.replay_timestamp_ns = 100;
+    prev.bids = {DL{100.0, 10}, DL{99.0, 7}};
+    prev.asks = {DL{101.0, 8}, DL{102.0, 6}};
+
+    BookSnapshot curr{};
+    curr.symbol = "TEST";
+    curr.replay_event_index = 2;
+    curr.replay_timestamp_ns = 200;
+    curr.bids = {DL{100.0, 13}, DL{99.0, 7}};
+    curr.asks = {DL{101.0, 5}, DL{102.0, 6}};
+
+    auto rows = FeatureBuilder::BuildFromSnapshots({prev, curr}, 2);
+    OfiFeatureBuilder::AddOfiFeatures(rows, {prev, curr}, 2);
+
+    ASSERT_TRUE(rows[1].ofi_lN.has_value());
+    ASSERT_TRUE(rows[1].weighted_ofi_lN.has_value());
+
+    // L1 bid = +3, L1 ask = +3, L2 unchanged => total 6
+    EXPECT_DOUBLE_EQ(*rows[1].ofi_lN, 6.0);
+    EXPECT_DOUBLE_EQ(*rows[1].weighted_ofi_lN, 6.0);
 }
 
 }  // namespace bookforge
