@@ -349,4 +349,132 @@ The replay path is now strong enough to support:
 - regression-friendly testing,
 - future expansion to additional historical data sources.
 
-The next best task is likely **documenting source-specific field mappings**, followed by **LOBSTER-style replay support**.
+# Progress Log — 2026-07-18
+
+## Summary
+
+Today’s work moved Bookforge forward across three major areas:
+
+- replay adapter abstraction and test coverage,
+- matching-engine replay integration and Hyperliquid regression stability,
+- Phase 5 snapshot and serialization infrastructure, including round-trip CSV validation.
+
+By the end of the day, the replay path was cleaner, regression coverage was more reliable, and the snapshot layer gained a full documented read/write workflow with automated tests.
+
+## Completed work
+
+### Replay adapter layer
+
+#### Add generic replay adapter interface
+- Introduced a generic replay adapter abstraction to decouple replay orchestration from the Hyperliquid-specific adapter.
+- Established a cleaner interface boundary between replay inputs and matching-engine behavior.
+
+#### Refactor Hyperliquid adapter onto replay interface
+- Moved the Hyperliquid adapter onto the generic replay interface.
+- Reduced source-specific coupling in the replay runner and made future source integration easier.
+
+#### Add replay adapter tests and CMake target
+- Added dedicated replay adapter tests.
+- Wired the new replay adapter test target into CMake and CTest.
+
+#### Update blueprint for Phase 3 adapter layer
+- Updated planning documentation to reflect the adapter refactor and its testing coverage.
+
+### Replay integration and regression hardening
+
+#### integrate matching engine with replay and add integration tests
+- Connected replay more directly to the matching engine.
+- Added integration tests covering replay-style event sequences and end-to-end engine behavior.
+
+#### Fix Hyperliquid replay regression tests and fixture paths
+- Fixed fixture path handling for replay regression tests.
+- Restored stable execution of Hyperliquid replay regression coverage under CTest.
+
+#### Document Hyperliquid CSV to ExternalOrderEvent field mapping
+- Documented how Hyperliquid CSV fields map into `ExternalOrderEvent`.
+- Improved traceability from raw replay data to internal event representation.
+
+### Phase 5 snapshot and serialization layer
+
+#### add order book snapshot, CSV serializer, comparator
+- Added the core snapshot model for reconstructed book state.
+- Implemented CSV snapshot serialization.
+- Implemented snapshot comparison utilities for deterministic checkpoint validation.
+
+#### Add test for snapshot
+- Added the initial snapshot test target and baseline test coverage.
+- Verified top-of-book values, depth export, and comparator behavior.
+
+#### Update Phase 5 progress on blueprint
+- Updated the project blueprint to reflect the current implementation state of Phase 5.
+
+#### Add snapshot schema documentation
+- Added Markdown documentation describing the snapshot schema, CSV layout, and comparison semantics.
+
+#### Phase 5: add snapshot CSV deserializer
+- Implemented CSV deserialization for snapshots.
+- Added header validation and reconstruction of scalar fields plus top-N depth.
+
+#### Phase 5: add snapshot CSV round-trip tests
+- Added round-trip tests covering write → read → compare behavior.
+- Strengthened reproducibility guarantees for exported snapshot state.
+
+## Technical outcomes
+
+### Replay architecture
+- Replay is now structured around a generic adapter interface rather than a single source-specific adapter.
+- This makes the system easier to extend to additional sources such as LOBSTER.
+
+### Testing stability
+- Hyperliquid replay regression coverage is now stable and fixture-backed.
+- Matching-engine integration tests provide stronger confidence in replay-driven state evolution.
+
+### Snapshot system
+- Book state is now exportable in a structured CSV format.
+- Snapshots include:
+  - symbol and replay metadata,
+  - event counters,
+  - best bid / ask,
+  - spread and mid-price,
+  - top-N bid and ask depth.
+- Snapshots can now be serialized, deserialized, compared, and round-trip tested.
+
+## Files and areas touched
+
+### Core engine and replay
+- replay adapter interface
+- Hyperliquid replay adapter
+- replay runner integration
+- matching-engine integration tests
+- replay regression tests and fixtures
+- replay-related CMake targets
+
+### Snapshot layer
+- `BookSnapshot`
+- `SnapshotBuilder`
+- `SnapshotSerializer`
+- `SnapshotComparator`
+- `SnapshotDeserializer`
+- snapshot unit tests
+- snapshot schema documentation
+- Phase 5 blueprint updates
+
+## Result at end of day
+
+The project ended the day with:
+
+- a cleaner replay abstraction,
+- stronger replay and integration test coverage,
+- a functioning snapshot serialization layer with documentation,
+- a working CSV round-trip path for reproducible book-state export.
+
+## Next steps
+
+### Phase 5 follow-up
+- Add binary snapshot output if still desired.
+- Expand replay checkpoint validation using larger or multiple fixtures.
+- Continue refining snapshot tooling if more formats or comparison modes are needed.
+
+### Forward-looking work
+- Use the new replay and snapshot foundation to support future source ingestion and deeper replay analysis workflows.
+

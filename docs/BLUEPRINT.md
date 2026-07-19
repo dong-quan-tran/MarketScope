@@ -217,17 +217,19 @@ Make book state exportable, comparable, and reproducible across replay checkpoin
 - [x] Add snapshot builder from live engine/book state
 - [x] Wire snapshot sources into `bookforge_core`
 - [x] Add `test_snapshot` target in CMake
-- [ ] Fix snapshot include/build issues on Windows
+- [x] Fix snapshot include/build issues on Windows
 - [ ] Verify `test_snapshot` is discovered by CTest
 
 ### Testing / done criteria
-- [ ] Snapshot round-trip tests
-- [ ] Snapshot schema documentation
+- [x] Snapshot round-trip tests
+- [x] Snapshot schema documentation
 - [ ] Validation against replay checkpoints
 - [x] Builder unit tests for best bid / ask / spread / mid-price
 - [x] Top-N depth export tests
 - [x] Comparator mismatch reporting tests
 - [x] CSV shape / header stability tests
+- [x] Add `SnapshotDeserializer` for CSV round-trip support
+- [x] Add CSV header validation
 - [ ] Full Phase 5 test pass in CTest
 - [ ] No `_NOT_BUILT` snapshot placeholder in CTest output
 
