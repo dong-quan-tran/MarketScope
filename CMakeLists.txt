@@ -34,6 +34,8 @@ add_library(bookforge_core
   src/snapshot/SnapshotSerializer.cpp
   src/snapshot/SnapshotComparator.cpp
   src/snapshot/SnapshotDeserializer.cpp
+  src/snapshot/SnapshotBinarySerializer.cpp
+  src/snapshot/SnapshotBinaryDeserializer.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC

@@ -134,6 +134,58 @@ Snapshots are intended to be captured at deterministic replay checkpoints, such 
 
 These checkpoints allow regression tests to validate that reconstructed book state remains stable across code changes.
 
+## Binary snapshot format
+
+Bookforge also supports a versioned binary snapshot format for compact, deterministic snapshot storage.
+
+### File header
+
+Each binary snapshot file begins with:
+
+- `magic[8]`: ASCII bytes `BFSNAP01`
+- `version` (`uint32`, little-endian): current value `1`
+- `reserved` (`uint32`, little-endian): must be `0`
+- `depth_levels` (`uint32`, little-endian): configured top-N depth
+- `snapshot_count` (`uint64`, little-endian): number of snapshot records in the file
+
+### Snapshot record layout
+
+Each snapshot record is encoded as:
+
+1. `symbol_len` (`uint32`)
+2. `symbol_bytes` (`symbol_len` raw bytes, no null terminator)
+3. `replay_event_index` (`uint64`)
+4. `replay_timestamp_ns` (`uint64`)
+5. `total_events_seen` (`uint64`)
+6. `submitted_orders` (`uint64`)
+7. `rejected_events` (`uint64`)
+8. `ignored_events` (`uint64`)
+9. `generated_trades` (`uint64`)
+10. `best_bid_present` (`uint8`)
+11. `best_bid` (`double`) if present
+12. `best_ask_present` (`uint8`)
+13. `best_ask` (`double`) if present
+14. `mid_price_present` (`uint8`)
+15. `mid_price` (`double`) if present
+16. `spread_present` (`uint8`)
+17. `spread` (`double`) if present
+18. `bid_count` (`uint32`)
+19. repeated `bid_count` times:
+    - `price` (`double`)
+    - `quantity` (`uint32`)
+20. `ask_count` (`uint32`)
+21. repeated `ask_count` times:
+    - `price` (`double`)
+    - `quantity` (`uint32`)
+
+### Format guarantees
+
+- All integers use fixed-width little-endian encoding.
+- Floating-point values are written as IEEE-754 `double` bit patterns.
+- Strings are length-prefixed and stored without null terminators.
+- The format is versioned so future schema updates can be handled explicitly.
+- The binary format is deterministic for the same snapshot content and depth configuration.
+
 ## Versioning notes
 
 The Phase 5 schema is the initial snapshot schema.
