@@ -17,11 +17,17 @@ FetchContent_Declare(
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG v2.13.6
+)
+
 # For Windows: prevent GoogleTest from overriding the parent project's
 # compiler/runtime settings.
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(googletest pybind11)
 
 enable_testing()
 include(GoogleTest)
@@ -195,12 +201,21 @@ add_executable(test_feature_builder
   tests/cpp/test_feature_builder.cpp
 )
 
-target_link_libraries(test_feature_builder
-  PRIVATE
-    bookforge_core
-    GTest::gtest_main
+target_link_libraries(test_feature_builder PRIVATE
+  bookforge_core
+  GTest::gtest_main
 )
 
-include(GoogleTest)
 gtest_discover_tests(test_feature_builder)
 
+pybind11_add_module(bookforge_py
+  src/python/bookforge_py.cpp
+)
+
+target_include_directories(bookforge_py PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(bookforge_py PRIVATE
+  bookforge_core
+)
