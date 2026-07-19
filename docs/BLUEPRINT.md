@@ -176,48 +176,61 @@ Create a clean boundary between external market data and internal order-book act
 Connect replayed events to a realistic matching workflow.
 
 ### Tasks
-- [ ] Implement or refine `MatchingEngine`
-- [ ] Define interaction between `OrderBook` and `MatchingEngine`
-- [ ] Support passive order insertion
-- [ ] Support aggressive execution path
-- [ ] Support partial fill bookkeeping
-- [ ] Support cancellation path
-- [ ] Emit trade / fill records
-- [ ] Add internal event logging hooks
-- [ ] Define whether snapshots are derived live or serialized after replay
+- [x] Implement or refine `MatchingEngine`
+- [x] Define interaction between `OrderBook` and `MatchingEngine`
+- [x] Support passive order insertion
+- [x] Support aggressive execution path
+- [x] Support partial fill bookkeeping
+- [x] Support cancellation path
+- [x] Emit trade / fill records
+- [x] Add internal event logging hooks
+- [x] Define whether snapshots are derived live or serialized after replay
 
 ### Validation tasks
-- [ ] Verify top-of-book evolution during replay
-- [ ] Compare replayed state against reference snapshots when available
-- [ ] Document known gaps between prototype replay and full market reconstruction
+- [x] Verify top-of-book evolution during replay
+- [x] Compare replayed state against reference snapshots when available
+- [x] Document known gaps between prototype replay and full market reconstruction
 
 ### Testing / done criteria
-- [ ] End-to-end replay through the real engine
-- [ ] Trade generation tests
-- [ ] Partial fill tests
-- [ ] Cancel-after-partial-fill tests
-- [ ] Replay consistency tests
+- [x] End-to-end replay through the real engine
+- [x] Trade generation tests
+- [x] Partial fill tests
+- [x] Cancel-after-partial-fill tests
+- [x] Replay consistency tests
 
 ---
 
 ## Phase 5 — Snapshot and serialization layer
 
 ### Goals
-Make book state exportable and reproducible.
+Make book state exportable, comparable, and reproducible across replay checkpoints.
 
 ### Tasks
-- [ ] Define snapshot schema
-- [ ] Implement `SnapshotSerializer`
-- [ ] Export top-N book depth
-- [ ] Export best bid / ask, spread, mid-price
-- [ ] Export replay timestamps and event counters
-- [ ] Support CSV and/or binary snapshot output
-- [ ] Add snapshot comparison tools
+- [x] Define snapshot schema
+- [x] Implement `SnapshotSerializer`
+- [x] Export top-N book depth
+- [x] Export best bid / ask, spread, mid-price
+- [x] Export replay timestamps and event counters
+- [x] Support CSV snapshot output
+- [ ] Support binary snapshot output
+- [x] Add snapshot comparison tools
+- [x] Add snapshot builder from live engine/book state
+- [x] Wire snapshot sources into `bookforge_core`
+- [x] Add `test_snapshot` target in CMake
+- [ ] Fix snapshot include/build issues on Windows
+- [ ] Verify `test_snapshot` is discovered by CTest
 
 ### Testing / done criteria
 - [ ] Snapshot round-trip tests
 - [ ] Snapshot schema documentation
 - [ ] Validation against replay checkpoints
+- [x] Builder unit tests for best bid / ask / spread / mid-price
+- [x] Top-N depth export tests
+- [x] Comparator mismatch reporting tests
+- [x] CSV shape / header stability tests
+- [ ] Full Phase 5 test pass in CTest
+- [ ] No `_NOT_BUILT` snapshot placeholder in CTest output
+
 
 ---
 
