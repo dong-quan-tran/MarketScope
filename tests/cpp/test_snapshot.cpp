@@ -12,6 +12,8 @@
 #include "snapshot/SnapshotComparator.hpp"
 #include "snapshot/SnapshotSerializer.hpp"
 #include "snapshot/SnapshotDeserializer.hpp"
+#include "snapshot/SnapshotBinaryDeserializer.hpp"
+#include "snapshot/SnapshotBinarySerializer.hpp"
 
 namespace bookforge {
 namespace {
@@ -261,6 +263,105 @@ TEST(SnapshotTest, DeserializerPreservesEmptyOptionalTopOfBookFields) {
     EXPECT_EQ(loaded[0].bids[0].quantity, 5u);
     EXPECT_DOUBLE_EQ(loaded[0].asks[0].price, 101.0);
     EXPECT_EQ(loaded[0].asks[0].quantity, 6u);
+}
+
+TEST(SnapshotTest, BinaryRoundTripPreservesSnapshotContent) {
+    MatchingEngine engine;
+    engine.MatchLimitOrder(MakeOrder(1, Side::Buy, 100.0, 10, 1));
+    engine.MatchLimitOrder(MakeOrder(2, Side::Buy, 99.0, 7, 2));
+    engine.MatchLimitOrder(MakeOrder(3, Side::Sell, 101.0, 4, 3));
+
+    SnapshotBuildContext ctx{};
+    ctx.symbol = "TEST";
+    ctx.replay_event_index = 3;
+    ctx.replay_timestamp_ns = 3;
+    ctx.total_events_seen = 3;
+    ctx.submitted_orders = 3;
+    ctx.rejected_events = 0;
+    ctx.ignored_events = 0;
+    ctx.generated_trades = 0;
+
+    const BookSnapshot original = SnapshotBuilder::Build(engine, ctx, 2);
+
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_roundtrip.bin";
+
+    SnapshotBinarySerializer::Write(out_path.string(), {original}, 2);
+
+    const auto loaded = SnapshotBinaryDeserializer::Read(out_path.string(), 2);
+    ASSERT_EQ(loaded.size(), 1u);
+
+    const auto result = SnapshotComparator::Compare(original, loaded[0]);
+    EXPECT_TRUE(result.equal) << result.message;
+}
+
+TEST(SnapshotTest, BinaryDeserializerRejectsInvalidMagic) {
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_bad_magic.bin";
+
+    {
+        std::ofstream out(out_path, std::ios::binary);
+        ASSERT_TRUE(out.is_open());
+        const char bad_magic[8] = {'B', 'A', 'D', 'M', 'A', 'G', 'I', 'C'};
+        out.write(bad_magic, sizeof(bad_magic));
+    }
+
+    EXPECT_THROW(
+        (void)SnapshotBinaryDeserializer::Read(out_path.string(), 2),
+        std::runtime_error);
+}
+
+TEST(SnapshotTest, BinaryDeserializerRejectsUnsupportedVersion) {
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_bad_version.bin";
+
+    {
+        std::ofstream out(out_path, std::ios::binary);
+        ASSERT_TRUE(out.is_open());
+
+        const char magic[8] = {'B', 'F', 'S', 'N', 'A', 'P', '0', '1'};
+        out.write(magic, sizeof(magic));
+
+        const unsigned char version[4] = {2, 0, 0, 0};
+        const unsigned char reserved[4] = {0, 0, 0, 0};
+        const unsigned char depth[4] = {2, 0, 0, 0};
+        const unsigned char count[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+        out.write(reinterpret_cast<const char*>(version), sizeof(version));
+        out.write(reinterpret_cast<const char*>(reserved), sizeof(reserved));
+        out.write(reinterpret_cast<const char*>(depth), sizeof(depth));
+        out.write(reinterpret_cast<const char*>(count), sizeof(count));
+    }
+
+    EXPECT_THROW(
+        (void)SnapshotBinaryDeserializer::Read(out_path.string(), 2),
+        std::runtime_error);
+}
+
+TEST(SnapshotTest, BinaryDeserializerRejectsDepthMismatch) {
+    MatchingEngine engine;
+    engine.MatchLimitOrder(MakeOrder(1, Side::Buy, 100.0, 10, 1));
+
+    SnapshotBuildContext ctx{};
+    ctx.symbol = "TEST";
+    ctx.replay_event_index = 1;
+    ctx.replay_timestamp_ns = 1;
+    ctx.total_events_seen = 1;
+    ctx.submitted_orders = 1;
+    ctx.rejected_events = 0;
+    ctx.ignored_events = 0;
+    ctx.generated_trades = 0;
+
+    const BookSnapshot snapshot = SnapshotBuilder::Build(engine, ctx, 1);
+
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_depth_mismatch.bin";
+
+    SnapshotBinarySerializer::Write(out_path.string(), {snapshot}, 1);
+
+    EXPECT_THROW(
+        (void)SnapshotBinaryDeserializer::Read(out_path.string(), 2),
+        std::runtime_error);
 }
 
 }  // namespace
