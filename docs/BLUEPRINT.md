@@ -5,6 +5,7 @@
 Bookforge is a hybrid **C++20 + Python** market microstructure project centered on a low-latency limit order book, historical market replay, feature extraction, and short-horizon signal research.
 
 The long-term goal is to build a repo that demonstrates strength across:
+
 - **systems engineering**
 - **market microstructure modeling**
 - **historical replay infrastructure**
@@ -246,9 +247,9 @@ Turn replayed book state into usable microstructure features.
 - [x] Compute mid-price over time
 - [x] Compute top-level depth imbalance
 - [x] Compute multi-level depth imbalance
-- [ ] Compute OFI for levels 1–5
-- [ ] Add weighted OFI
-- [ ] Add rolling liquidity / volatility context features
+- [x] Compute OFI for levels 1–5
+- [x] Add weighted OFI across levels 1–5
+- [x] Add rolling liquidity / volatility context features
 - [x] Define feature export format
 - [x] Add feature naming and schema conventions
 
