@@ -33,6 +33,7 @@ add_library(bookforge_core
   src/snapshot/SnapshotBuilder.cpp
   src/snapshot/SnapshotSerializer.cpp
   src/snapshot/SnapshotComparator.cpp
+  src/snapshot/SnapshotDeserializer.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC
@@ -183,3 +184,4 @@ target_link_libraries(test_snapshot PRIVATE
 )
 
 gtest_discover_tests(test_snapshot)
+
