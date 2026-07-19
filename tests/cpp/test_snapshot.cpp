@@ -11,6 +11,7 @@
 #include "snapshot/SnapshotBuilder.hpp"
 #include "snapshot/SnapshotComparator.hpp"
 #include "snapshot/SnapshotSerializer.hpp"
+#include "snapshot/SnapshotDeserializer.hpp"
 
 namespace bookforge {
 namespace {
@@ -186,6 +187,80 @@ TEST(SnapshotTest, ReplayStyleCheckpointValidationMatchesExpectedState) {
 
     const auto result = SnapshotComparator::Compare(snapshots.back(), expected);
     EXPECT_TRUE(result.equal) << result.message;
+}
+
+
+TEST(SnapshotTest, CsvRoundTripPreservesSnapshotContent) {
+    MatchingEngine engine;
+    engine.MatchLimitOrder(MakeOrder(1, Side::Buy, 100.0, 10, 1));
+    engine.MatchLimitOrder(MakeOrder(2, Side::Buy, 99.0, 7, 2));
+    engine.MatchLimitOrder(MakeOrder(3, Side::Sell, 101.0, 4, 3));
+
+    SnapshotBuildContext ctx{};
+    ctx.symbol = "TEST";
+    ctx.replay_event_index = 3;
+    ctx.replay_timestamp_ns = 3;
+    ctx.total_events_seen = 3;
+    ctx.submitted_orders = 3;
+    ctx.rejected_events = 0;
+    ctx.ignored_events = 0;
+    ctx.generated_trades = 0;
+
+    const BookSnapshot original = SnapshotBuilder::Build(engine, ctx, 2);
+
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_roundtrip.csv";
+
+    SnapshotSerializer::WriteCsv(out_path.string(), {original}, 2);
+
+    const auto loaded = SnapshotDeserializer::ReadCsv(out_path.string(), 2);
+    ASSERT_EQ(loaded.size(), 1u);
+
+    const auto result = SnapshotComparator::Compare(original, loaded[0]);
+    EXPECT_TRUE(result.equal) << result.message;
+}
+
+TEST(SnapshotTest, DeserializerRejectsInvalidHeader) {
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_bad_header.csv";
+
+    {
+        std::ofstream out(out_path);
+        ASSERT_TRUE(out.is_open());
+        out << "wrong,header\n";
+        out << "TEST,1,1,1,1,0,0,0,100,101,100.5,1,100,10,99,7,101,4,102,6\n";
+    }
+
+    EXPECT_THROW(
+        (void)SnapshotDeserializer::ReadCsv(out_path.string(), 2),
+        std::runtime_error);
+}
+
+TEST(SnapshotTest, DeserializerPreservesEmptyOptionalTopOfBookFields) {
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "bookforge_snapshot_empty_optional.csv";
+
+    {
+        std::ofstream out(out_path);
+        ASSERT_TRUE(out.is_open());
+        out << "symbol,replay_event_index,replay_timestamp_ns,total_events_seen,submitted_orders,rejected_events,ignored_events,generated_trades,best_bid,best_ask,mid_price,spread,bid_px_1,bid_qty_1,ask_px_1,ask_qty_1\n";
+        out << "TEST,1,1,1,1,0,0,0,,,,,100,5,101,6\n";
+    }
+
+    const auto loaded = SnapshotDeserializer::ReadCsv(out_path.string(), 1);
+    ASSERT_EQ(loaded.size(), 1u);
+
+    EXPECT_FALSE(loaded[0].best_bid.has_value());
+    EXPECT_FALSE(loaded[0].best_ask.has_value());
+    EXPECT_FALSE(loaded[0].mid_price.has_value());
+    EXPECT_FALSE(loaded[0].spread.has_value());
+
+    ASSERT_EQ(loaded[0].bids.size(), 1u);
+    ASSERT_EQ(loaded[0].asks.size(), 1u);
+    EXPECT_DOUBLE_EQ(loaded[0].bids[0].price, 100.0);
+    EXPECT_EQ(loaded[0].bids[0].quantity, 5u);
+    EXPECT_DOUBLE_EQ(loaded[0].asks[0].price, 101.0);
+    EXPECT_EQ(loaded[0].asks[0].quantity, 6u);
 }
 
 }  // namespace
