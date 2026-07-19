@@ -30,6 +30,9 @@ add_library(bookforge_core
   src/core/price_level.cpp
   src/core/order_book.cpp
   src/core/matching_engine.cpp
+  src/snapshot/SnapshotBuilder.cpp
+  src/snapshot/SnapshotSerializer.cpp
+  src/snapshot/SnapshotComparator.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC
@@ -169,3 +172,14 @@ target_link_libraries(test_matching_engine_integration PRIVATE
 )
 
 gtest_discover_tests(test_matching_engine_integration)
+
+add_executable(test_snapshot
+  tests/cpp/test_snapshot.cpp
+)
+
+target_link_libraries(test_snapshot PRIVATE
+  bookforge_core
+  GTest::gtest_main
+)
+
+gtest_discover_tests(test_snapshot)
