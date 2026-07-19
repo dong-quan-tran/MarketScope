@@ -478,3 +478,186 @@ The project ended the day with:
 ### Forward-looking work
 - Use the new replay and snapshot foundation to support future source ingestion and deeper replay analysis workflows.
 
+# Progress Log — 2026-07-19
+
+## Overview
+
+Today’s work moved Bookforge from a replay-and-snapshot engine toward a research-ready pipeline. The main outcomes were:
+
+- Finished the remaining snapshot serialization work in Phase 5.
+- Completed Phase 6 feature extraction, including OFI, weighted OFI, rolling context features, and Python-side CSV validation.
+- Started Phase 7 by adding the initial pybind11 binding module and updating the blueprint for the Python bridge and research layer.
+
+The project now has a cleaner end-to-end path:
+
+`replay -> snapshots -> features -> validated CSV -> Python -> ML`
+
+## Commits
+
+### Phase 7
+- `72351eb` — Docs: update Phase 7 blueprint checklist
+- `99eda64` — Phase 7: add initial pybind11 binding module
+
+### Phase 6
+- `36ce93e` — Phase 6: mark feature export validation complete
+- `3019611` — Phase 6: add Python feature export validator
+- `510ce2a` — Phase 6: add rolling context feature tests
+- `19e6188` — Phase 6: add rolling liquidity and volatility context features
+- `1a449d4` — Phase 6: add weighted OFI tests
+- `3b9bfc0` — Phase 6: add weighted OFI feature
+- `e249663` — Phase 6: add OFI feature tests
+- `da57f8c` — Phase 6: add OFI feature builder
+- `e278522` — Phase 6: add feature extraction tests and schema notes
+- `2b15d77` — Phase 6: add base feature extraction from snapshots
+
+### Phase 5
+- `66eaaed` — Phase 5: add binary snapshot round-trip tests
+- `e05d932` — Phase 5: add binary snapshot serialization support
+
+## Phase 5 Progress
+
+### Binary snapshot serialization
+Added binary snapshot serialization support so book state can be exported and restored in a compact machine-friendly format.
+
+### Binary round-trip tests
+Added round-trip tests to verify that serialized binary snapshots can be deserialized back into equivalent in-memory state.
+
+### Result
+Phase 5 is effectively complete from the implementation and correctness side. Snapshot data now supports both richer persistence and stronger regression testing.
+
+## Phase 6 Progress
+
+### Base feature extraction
+Implemented base feature extraction from snapshots, including:
+
+- Best bid
+- Best ask
+- Spread
+- Mid-price
+- L1 bid quantity
+- L1 ask quantity
+- L1 depth imbalance
+- Multi-level depth aggregates
+- Multi-level depth imbalance
+
+Also added schema notes and supporting tests so the feature table has a stable, explicit structure.
+
+### OFI feature builder
+Implemented Order Flow Imbalance features:
+
+- `ofi_l1`
+- `ofi_lN`
+
+This established the first event-sensitive microstructure signal on top of static snapshot-derived features.
+
+### OFI tests
+Added fixture-style tests for OFI behavior, covering best-level changes, depth changes, and multi-level aggregation logic.
+
+### Weighted OFI
+Extended OFI with a weighted multi-level variant:
+
+- `weighted_ofi_lN`
+
+The weighting scheme prioritizes near-touch levels over deeper ones, making the feature more aligned with practical microstructure intuition.
+
+### Weighted OFI tests
+Added tests that verify:
+
+- Deeper levels are discounted correctly.
+- Weighted OFI matches unweighted OFI when only L1 changes.
+
+### Rolling liquidity and volatility context features
+Added rolling-window context features, including:
+
+- `rolling_mean_spread`
+- `rolling_mean_l1_total_depth`
+- `rolling_mean_lN_total_depth`
+- `rolling_mid_return`
+- `rolling_realized_mid_vol`
+- `rolling_mean_abs_ofi_l1`
+- `rolling_mean_abs_ofi_lN`
+
+These features give each row local market context rather than relying only on instantaneous state.
+
+### Rolling context tests
+Added tests for rolling means, rolling returns, realized volatility, and rolling absolute OFI values.
+
+### Python feature export validator
+Added a Python validation script for exported feature CSVs. The validator checks:
+
+- Required columns exist.
+- Numeric columns are readable as numeric.
+- Replay indices and timestamps are monotone.
+- `spread == best_ask - best_bid`
+- `mid_price == (best_bid + best_ask) / 2`
+- Imbalance values remain within expected bounds.
+- Non-negative fields stay non-negative where appropriate.
+
+### Phase 6 completion
+Marked feature export validation complete in the blueprint, which closes Phase 6.
+
+### Result
+Phase 6 is now in good shape:
+
+- Features are generated in C++.
+- Core feature logic is tested.
+- Export schema is documented.
+- Python can validate exported feature files before research or training begins.
+
+## Phase 7 Progress
+
+### Initial pybind11 binding module
+Started the Python bridge by:
+
+- Adding pybind11 through CMake.
+- Creating the initial binding module under `src/python/`.
+- Wiring a `bookforge_py` extension module against `bookforge_core`.
+
+### First bound objects
+The initial binding layer targets plain data structs first:
+
+- `DepthLevelSnapshot`
+- `BookSnapshot`
+- `FeatureRow`
+
+This is the right first bridge because it exposes stable value objects to Python before attempting more complex runtime control paths like replay orchestration.
+
+### Blueprint update
+Updated `docs/BLUEPRINT.md` to reflect the new Phase 7 direction and the near-term order of work for the research layer.
+
+### Result
+Phase 7 has started successfully. The Python bridge is no longer just a plan; it now has an initial implementation path in the build system and source tree.
+
+## Current Project State
+
+### Completed or effectively completed
+- Phase 5 — Snapshot and serialization layer
+- Phase 6 — Feature extraction
+
+### Started
+- Phase 7 — Python bridge and research layer
+
+## Key accomplishments today
+
+- Added binary snapshot serialization and round-trip coverage.
+- Built the full first-pass microstructure feature stack.
+- Added OFI and weighted OFI.
+- Added rolling liquidity and volatility regime features.
+- Added Python-side feature export validation.
+- Closed out Phase 6 in the blueprint.
+- Began the pybind11 bridge for Python research workflows.
+
+## Next steps
+
+The next logical tasks for Phase 7 are:
+
+1. Build the Python wrapper package.
+2. Implement Python-accessible feature and snapshot loading utilities.
+3. Implement short-horizon label generation.
+4. Build the first training dataset.
+5. Train an XGBoost baseline.
+6. Add walk-forward validation and feature importance analysis.
+
+## Notes
+
+Today was a strong transition point for the project. Bookforge now has a clearer path from C++ market replay infrastructure into Python-based research and modeling, with most of the needed data plumbing already in place.

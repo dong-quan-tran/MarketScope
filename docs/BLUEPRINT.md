@@ -266,7 +266,7 @@ Turn replayed book state into usable microstructure features.
 Expose C++ outputs to Python and build the research workflow.
 
 ### Tasks
-- [ ] Add pybind11 bindings for core book / replay / feature objects
+- [x] Add pybind11 bindings for core book / replay / feature objects
 - [ ] Build Python wrapper package
 - [ ] Implement feature loading utilities
 - [ ] Implement label generation for short-horizon prediction
