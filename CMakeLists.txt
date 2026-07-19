@@ -36,6 +36,8 @@ add_library(bookforge_core
   src/snapshot/SnapshotDeserializer.cpp
   src/snapshot/SnapshotBinarySerializer.cpp
   src/snapshot/SnapshotBinaryDeserializer.cpp
+  src/features/FeatureBuilder.cpp
+  src/features/FeatureCsvWriter.cpp
 )
 
 target_include_directories(bookforge_core PUBLIC
@@ -186,4 +188,17 @@ target_link_libraries(test_snapshot PRIVATE
 )
 
 gtest_discover_tests(test_snapshot)
+
+add_executable(test_feature_builder
+  tests/cpp/test_feature_builder.cpp
+)
+
+target_link_libraries(test_feature_builder
+  PRIVATE
+    bookforge_core
+    GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(test_feature_builder)
 
