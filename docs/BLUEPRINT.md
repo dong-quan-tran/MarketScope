@@ -256,7 +256,7 @@ Turn replayed book state into usable microstructure features.
 ### Testing / done criteria
 - [x] Feature unit tests
 - [x] Small fixture-based expected-value tests
-- [ ] Feature export validated in Python
+- [x] Feature export validated in Python
 
 ---
 
