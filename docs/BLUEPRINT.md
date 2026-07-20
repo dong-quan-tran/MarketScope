@@ -267,7 +267,7 @@ Expose C++ outputs to Python and build the research workflow.
 
 ### Tasks
 - [x] Add pybind11 bindings for core book / replay / feature objects
-- [ ] Build Python wrapper package
+- [x] Build Python wrapper package
 - [ ] Implement feature loading utilities
 - [ ] Implement label generation for short-horizon prediction
 - [ ] Implement Kyle’s Lambda estimation
