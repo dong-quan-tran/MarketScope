@@ -213,6 +213,19 @@ target_link_libraries(test_feature_builder PRIVATE
 
 gtest_discover_tests(test_feature_builder)
 
+add_executable(feature_export_main
+  src/feature_export_main.cpp
+  src/HyperliquidCsvReader.cpp
+)
+
+target_include_directories(feature_export_main PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(feature_export_main PRIVATE
+  bookforge_core
+)
+
 pybind11_add_module(bookforge_py
   src/python/bookforge_py.cpp
 )

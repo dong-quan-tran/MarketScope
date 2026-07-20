@@ -50,8 +50,6 @@ bool parse_bool(const std::string& value) {
 }
 
 std::chrono::nanoseconds parse_timestamp_stub(const std::string&) {
-    // Keep replay deterministic without depending on wall-clock parsing.
-    // If you later want exact timestamp parsing, replace this with a real parser.
     return std::chrono::nanoseconds{0};
 }
 
@@ -92,8 +90,8 @@ std::vector<ExternalOrderEvent> HyperliquidCsvReader::read_all(bool strict_mode,
 
         try {
             const auto fields = split_csv_simple(line);
-            if (fields.size() < 7) {
-                throw std::runtime_error("expected at least 7 CSV fields");
+            if (fields.size() < 5) {
+                throw std::runtime_error("expected at least 5 CSV fields");
             }
 
             ExternalOrderEvent ev{};
@@ -102,8 +100,14 @@ std::vector<ExternalOrderEvent> HyperliquidCsvReader::read_all(bool strict_mode,
             ev.size = std::stod(fields[2]);
             ev.isAsk = parse_bool(fields[3]);
             ev.statusId = std::stoi(fields[4]);
-            ev.statusText = fields[5];
-            ev.eventType = map_event_type(fields[5]);
+
+            if (fields.size() >= 6) {
+                ev.statusText = fields[5];
+                ev.eventType = map_event_type(fields[5]);
+            } else {
+                ev.statusText = "";
+                ev.eventType = map_event_type(std::to_string(ev.statusId));
+            }
 
             events.push_back(ev);
         } catch (const std::exception& ex) {
@@ -138,6 +142,22 @@ EventType HyperliquidCsvReader::map_event_type(const std::string& statusText) co
     if (s.find("Rejected") != std::string::npos ||
         s.find("rejected") != std::string::npos) {
         return EventType::Reject;
+    }
+
+    if (s == "1") {
+        return EventType::New;
+    }
+    if (s == "2") {
+        return EventType::Cancel;
+    }
+    if (s == "3") {
+        return EventType::Fill;
+    }
+    if (s == "4") {
+        return EventType::Reject;
+    }
+    if (s == "5") {
+        return EventType::Trigger;
     }
 
     return EventType::Other;
