@@ -270,9 +270,10 @@ Expose C++ outputs to Python and build the research workflow.
 - [x] Build Python wrapper package
 - [x] Implement feature loading utilities
 - [x] Implement label generation for short-horizon prediction
-- [ ] Implement Kyle’s Lambda estimation
-- [ ] Build first training dataset
-- [ ] Train XGBoost baseline
+- [x] Implement Kyle’s Lambda estimation
+- [x] Add feature export CLI
+- [x] Build first training dataset
+- [x] Train XGBoost baseline
 - [ ] Add walk-forward validation
 - [ ] Add feature importance / SHAP analysis
 - [ ] Add ML experiment tracking
