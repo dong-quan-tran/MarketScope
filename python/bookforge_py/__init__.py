@@ -14,6 +14,12 @@ from .labels import (
     classify_return,
     make_labels,
 )
+from .impact import (
+    KyleLambdaResult,
+    compute_price_change,
+    estimate_kyle_lambda,
+    estimate_kyle_lambda_by_window,
+)
 
 __all__ = [
     "DepthLevelSnapshot",
@@ -30,4 +36,8 @@ __all__ = [
     "compute_log_return",
     "classify_return",
     "make_labels",
+    "KyleLambdaResult",
+    "compute_price_change",
+    "estimate_kyle_lambda",
+    "estimate_kyle_lambda_by_window",
 ]
