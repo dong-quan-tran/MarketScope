@@ -11,6 +11,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
 
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
@@ -31,6 +33,9 @@ FetchContent_MakeAvailable(googletest pybind11)
 
 enable_testing()
 include(GoogleTest)
+
+set(BOOKFORGE_PY_PACKAGE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/python/bookforge_py)
+file(MAKE_DIRECTORY ${BOOKFORGE_PY_PACKAGE_DIR})
 
 add_library(bookforge_core
   src/core/price_level.cpp
@@ -219,3 +224,20 @@ target_include_directories(bookforge_py PRIVATE
 target_link_libraries(bookforge_py PRIVATE
   bookforge_core
 )
+
+target_compile_features(bookforge_py PRIVATE cxx_std_20)
+
+set_target_properties(bookforge_py PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY ${BOOKFORGE_PY_PACKAGE_DIR}
+  RUNTIME_OUTPUT_DIRECTORY ${BOOKFORGE_PY_PACKAGE_DIR}
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python_artifacts
+)
+
+if(WIN32)
+  set_target_properties(bookforge_py PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BOOKFORGE_PY_PACKAGE_DIR}
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BOOKFORGE_PY_PACKAGE_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BOOKFORGE_PY_PACKAGE_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BOOKFORGE_PY_PACKAGE_DIR}
+  )
+endif()
