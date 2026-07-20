@@ -7,6 +7,13 @@ from .loaders import (
     split_feature_columns,
     validate_feature_frame,
 )
+from .labels import (
+    ClassificationThresholds,
+    HorizonSpec,
+    compute_log_return,
+    classify_return,
+    make_labels,
+)
 
 __all__ = [
     "DepthLevelSnapshot",
@@ -18,4 +25,9 @@ __all__ = [
     "load_feature_csv",
     "split_feature_columns",
     "validate_feature_frame",
+    "HorizonSpec",
+    "ClassificationThresholds",
+    "compute_log_return",
+    "classify_return",
+    "make_labels",
 ]
