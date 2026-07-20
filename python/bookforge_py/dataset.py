@@ -9,7 +9,6 @@ import pandas as pd
 from .labels import make_labels
 from .loaders import (
     DEFAULT_METADATA_COLUMNS,
-    feature_column_names,
     load_feature_csv,
 )
 
@@ -36,6 +35,7 @@ class ChronologicalSplit:
 
 
 DEFAULT_EXCLUDED_FEATURE_COLUMNS = {
+    "symbol",
     "replay_event_index",
     "replay_timestamp_ns",
 }
@@ -48,6 +48,13 @@ def select_feature_columns(
 ) -> list[str]:
     exclude = set(exclude_columns)
     return [col for col in df.columns if col not in exclude]
+
+
+def _normalize_classification_target(y: pd.Series) -> pd.Series:
+    y = y.astype("int64")
+    unique_labels = sorted(y.dropna().unique().tolist())
+    label_mapping = {label: idx for idx, label in enumerate(unique_labels)}
+    return y.map(label_mapping).astype("int8")
 
 
 def build_training_dataset(
@@ -87,7 +94,7 @@ def build_training_dataset(
     y = model_df[label_column].copy()
 
     if label_type == "classification":
-        y = y.astype("int8")
+        y = _normalize_classification_target(y)
 
     return TrainingDataset(
         X=X,
@@ -160,7 +167,7 @@ def build_training_dataset_from_frame(
     y = model_df[label_column].copy()
 
     if label_type == "classification":
-        y = y.astype("int8")
+        y = _normalize_classification_target(y)
 
     return TrainingDataset(
         X=X,

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
+import numpy as np
 
 REQUIRED_FEATURE_COLUMNS = [
     "replay_event_index",
@@ -45,11 +46,27 @@ def validate_feature_frame(df: pd.DataFrame) -> None:
     if not df["replay_timestamp_ns"].is_monotonic_increasing:
         raise ValueError("replay_timestamp_ns must be monotonic increasing")
 
-    if not (df["spread"] == (df["best_ask"] - df["best_bid"])).all():
-        raise ValueError("spread must equal best_ask - best_bid")
+    mask = df["spread"].notna() & df["best_ask"].notna() & df["best_bid"].notna()
+    expected_spread = df.loc[mask, "best_ask"] - df.loc[mask, "best_bid"]
 
-    if not (df["mid_price"] == ((df["best_bid"] + df["best_ask"]) / 2.0)).all():
-        raise ValueError("mid_price must equal (best_bid + best_ask) / 2")
+    if not np.isclose(
+        df.loc[mask, "spread"],
+        expected_spread,
+        rtol=1e-9,
+        atol=1e-9,
+    ).all():
+        raise ValueError("spread must approximately equal best_ask - best_bid")
+
+    mid_mask = df["mid_price"].notna() & df["best_bid"].notna() & df["best_ask"].notna()
+    expected_mid = (df.loc[mid_mask, "best_bid"] + df.loc[mid_mask, "best_ask"]) / 2.0
+
+    if not np.isclose(
+        df.loc[mid_mask, "mid_price"],
+        expected_mid,
+        rtol=1e-9,
+        atol=1e-9,
+    ).all():
+        raise ValueError("mid_price must approximately equal (best_bid + best_ask) / 2")
 
     non_negative_columns = [
         "spread",
@@ -83,7 +100,7 @@ def load_feature_csv(path: str | Path) -> pd.DataFrame:
 
     _ensure_columns(df, REQUIRED_FEATURE_COLUMNS)
 
-    numeric_columns = [col for col in df.columns if col not in []]
+    numeric_columns = [col for col in df.columns if col not in ["symbol"]]
     df = _coerce_numeric_columns(df, numeric_columns)
 
     validate_feature_frame(df)
