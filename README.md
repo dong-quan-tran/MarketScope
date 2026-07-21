@@ -2,7 +2,7 @@
 
 Bookforge is a hybrid **C++ + Python** market microstructure project for studying how a modern limit order book behaves under replayed market event flow.
 
-At its core is a low-latency **C++20 matching engine and price-time-priority limit order book** with deterministic replay infrastructure, snapshot export, and regression-tested historical event playback. On top of that, the project is intended to grow a Python research layer for feature extraction, liquidity estimation, machine learning, and a lightweight API/dashboard demo.
+At its core is a low-latency **C++20 matching engine and price-time-priority limit order book** with deterministic replay infrastructure, snapshot export, feature export, and regression-tested historical event playback. On top of that, the project now includes a Python research layer for dataset construction, short-horizon machine learning, walk-forward evaluation, feature importance / SHAP analysis, and experiment tracking with MLflow.
 
 The goal is to build a repo that is both:
 
@@ -20,7 +20,9 @@ The goal is to build a repo that is both:
 - Export reproducible **book snapshots** and replay checkpoints
 - Export useful microstructure features such as **spread**, **depth imbalance**, and **order flow imbalance**
 - Estimate liquidity measures such as **Kyle’s Lambda**
-- Train a short-horizon ML model to predict **mid-price direction**
+- Train short-horizon ML models to predict **mid-price direction**
+- Evaluate models with **chronological holdout** and **walk-forward validation**
+- Track experiments and artifacts with **MLflow**
 - Expose the system through a simple **FastAPI backend** and **dashboard**
 
 ---
@@ -36,13 +38,18 @@ The goal is to build a repo that is both:
 - Python 3.11+
 - pandas
 - numpy
+- scipy
 - pybind11
 - scikit-learn
 - xgboost
-- FastAPI
+- shap
+- mlflow
 - pytest
 
-### Visualization / app layer
+### API / app layer
+- FastAPI
+- Pydantic
+- Uvicorn
 - React
 - Recharts
 - Docker
@@ -64,8 +71,8 @@ This project is being built in staged phases.
 - Matching-engine integration tests
 - Documented core order book invariants and ownership rules
 - Initial Hyperliquid order-status data extraction workflow
-- Enriched sample event dataset generation
-- CSV-based replay reader for Hyperliquid-style enriched events
+- Sample event dataset generation
+- CSV-based replay reader for Hyperliquid-style events
 - Replay configuration and deterministic replay runner
 - Generic replay adapter interface
 - Hyperliquid replay adapter wired into the real matching engine
@@ -81,21 +88,33 @@ This project is being built in staged phases.
 - Snapshot unit tests
 - Snapshot CSV round-trip tests
 - Snapshot schema documentation
+- Feature export CLI
+- Python feature CSV loader and validation utilities
+- Python training dataset builder
+- pybind11-backed package structure
+- First XGBoost baseline training pipeline
+- Chronological holdout evaluation
+- Walk-forward validation
+- Feature importance export
+- Optional SHAP analysis
+- MLflow experiment tracking
+- Pytest coverage for Python wrappers
 
 ### In-progress work
 
 - LOBSTER-style replay support
 - More realistic external/internal cancel and fill linkage
-- Expanded replay checkpoint validation workflows
-- Feature extraction layer
+- Label-quality improvements for better class balance
+- Liquidity estimation features such as Kyle’s Lambda
+- API and dashboard layer
 
 ### Planned next work
 
 - Binary snapshot output, if useful
-- Feature exporter
-- pybind11 bridge
-- Python ML pipeline
-- API and dashboard
+- Expanded replay checkpoint validation workflows
+- Better label diagnostics and confusion-matrix reporting
+- More realistic multi-class / imbalanced evaluation
+- End-to-end API/demo integration
 
 ---
 
@@ -108,18 +127,20 @@ Bookforge/
 │   ├── replay/                     # replay runner, config, adapter interfaces
 │   ├── snapshot/                   # snapshot schema, builder, serializer, deserializer, comparator
 │   ├── features/                   # feature extraction from book state
+│   ├── python/                     # pybind11 C++ binding source
+│   │   └── bookforge_py.cpp
 │   ├── ExternalOrderEvent.hpp
 │   ├── HyperliquidCsvReader.hpp
 │   ├── HyperliquidCsvReader.cpp
 │   ├── HyperliquidMatchingEngineAdapter.hpp
 │   ├── HyperliquidMatchingEngineAdapter.cpp
-│   └── hyperliquid_replay_main.cpp
-├── bindings/                       # pybind11 bindings
+│   ├── hyperliquid_replay_main.cpp
+│   └── feature_export_main.cpp
 ├── python/
-│   ├── lob_engine/                 # Python wrapper around C++ core
-│   ├── ml/                         # feature engineering, liquidity metrics, training
+│   ├── bookforge_py/               # Python package: loaders, dataset helpers, wrapper exports
+│   ├── ml/                         # training and evaluation scripts
 │   ├── api/                        # FastAPI backend
-│   └── dashboard/                  # React frontend
+│   └── dashboard/                  # frontend work (planned / evolving)
 ├── tests/
 │   ├── cpp/                        # GoogleTest suites
 │   ├── python/                     # Pytest suites
@@ -127,8 +148,8 @@ Bookforge/
 ├── data/
 │   ├── lobster_sample/
 │   └── processed/
-├── bench/
 ├── docs/
+├── build/
 └── scripts/
 ```
 
@@ -168,7 +189,7 @@ The current replay path uses:
 - `ReplayConfig` for replay settings and limits
 - `ReplayRunner` for deterministic replay traversal
 - a generic replay adapter interface for engine-facing event application
-- `HyperliquidCsvReader` for enriched Hyperliquid CSV parsing
+- `HyperliquidCsvReader` for Hyperliquid CSV parsing
 - `HyperliquidMatchingEngineAdapter` as the current source-specific adapter
 
 Current `ExternalOrderEvent` fields include:
@@ -194,7 +215,7 @@ This keeps source-specific parsing separate from the core engine and makes futur
 
 ### Snapshots
 
-Book state can now be exported as structured snapshots for reproducibility and replay checkpoint validation.
+Book state can be exported as structured snapshots for reproducibility and replay checkpoint validation.
 
 Current snapshot support includes:
 
@@ -209,19 +230,32 @@ Current snapshot support includes:
 
 ### Market microstructure features
 
-The project will compute features such as:
+The project now exports a first feature set including:
 
 - best bid / best ask
 - spread
 - mid-price
-- bid depth / ask depth
-- order flow imbalance
+- L1 bid / ask size
 - depth imbalance
-- rolling liquidity measures
+- order flow imbalance
+- rolling feature statistics
+- replay metadata for supervised dataset construction
 
 ### ML layer
 
-The Python layer will use exported order book features to train a short-horizon classifier for mid-price movement over the next few events.
+The Python layer supports:
+
+- feature CSV loading and validation
+- training dataset construction
+- label generation
+- chronological holdout evaluation
+- walk-forward validation
+- XGBoost baseline training
+- feature importance export
+- optional SHAP analysis
+- MLflow experiment tracking
+
+The current baseline pipeline is infrastructure-complete, though the present sample dataset still shows strong label imbalance, so target design remains an active research task.
 
 ---
 
@@ -232,22 +266,22 @@ A small Hyperliquid research pipeline is now part of the project workflow.
 Current approach:
 
 1. Extract raw order-status data from downloaded archives.
-2. Map raw `statusId` values through lookup tables.
-3. Enrich the sample into a readable CSV with semantic event labels.
-4. Parse the enriched CSV into `ExternalOrderEvent` values.
-5. Replay those events through the deterministic replay runner and adapter layer.
-6. Validate replay outcomes using regression fixtures and, where needed, snapshots.
+2. Map raw `statusId` values through lookup tables when available.
+3. Parse Hyperliquid-style CSV rows into `ExternalOrderEvent` values.
+4. Replay those events through the deterministic replay runner and adapter layer.
+5. Export book-derived microstructure features to CSV.
+6. Load those features into the Python research layer for model training and evaluation.
 
-Example enriched columns:
+Example current CSV shape:
 
 ```text
-ts,limitPx,sz,isAsk,statusId,status,eventType
-2025-12-15 11:39:39.722049503,89691.0,0.01672,True,3,perpMarginRejected,Reject
+ts,limitPx,sz,isAsk,statusId
+2025-12-15 11:39:39.722049503,89691.0,0.01672,True,3
 ```
 
 Important limitation:
 
-- the current sample is useful for replay experiments and event classification,
+- the current sample is useful for replay experiments, feature generation, and ML pipeline validation,
 - but it does **not yet provide perfect order lifecycle reconstruction** for every engine behavior because exact order-ID-based cancel/fill linkage is still being refined.
 
 ---
@@ -319,6 +353,57 @@ pytest tests/python -q
 
 ---
 
+## Research workflow
+
+### 1. Export feature CSV from replayable Hyperliquid data
+
+#### Windows PowerShell
+```powershell
+.\build\Debug\feature_export_main.exe --input data\btc_orders_sample_2025-12-15-12.csv --output output\features.csv --symbol BTCUSDT.P --snapshot-depth 10 --imbalance-depth 10 --ofi-depth 10 --rolling-window 50
+```
+
+#### macOS / Linux
+```bash
+./build/feature_export_main --input data/btc_orders_sample_2025-12-15-12.csv --output output/features.csv --symbol BTCUSDT.P --snapshot-depth 10 --imbalance-depth 10 --ofi-depth 10 --rolling-window 50
+```
+
+### 2. Train a baseline with chronological holdout
+
+#### Windows PowerShell
+```powershell
+$env:PYTHONPATH = "python"
+python python/ml/train.py --features-csv output\features.csv --label-type classification --horizon-events 50 --up-threshold 0.0 --down-threshold 0.0
+```
+
+#### macOS / Linux
+```bash
+PYTHONPATH=python python python/ml/train.py --features-csv output/features.csv --label-type classification --horizon-events 50 --up-threshold 0.0 --down-threshold 0.0
+```
+
+### 3. Run walk-forward validation with MLflow and SHAP
+
+#### Windows PowerShell
+```powershell
+$env:PYTHONPATH = "python"
+$env:MLFLOW_TRACKING_URI = "sqlite:///mlruns.db"
+python python/ml/train.py --features-csv output\features.csv --label-type classification --horizon-events 50 --up-threshold 0.0 --down-threshold 0.0 --validation walk_forward --wf-initial-train-size 50000 --wf-test-size 10000 --wf-step-size 10000 --wf-max-folds 5 --enable-mlflow --mlflow-experiment bookforge --enable-shap --shap-sample-size 2000
+```
+
+#### macOS / Linux
+```bash
+PYTHONPATH=python MLFLOW_TRACKING_URI=sqlite:///mlruns.db python python/ml/train.py --features-csv output/features.csv --label-type classification --horizon-events 50 --up-threshold 0.0 --down-threshold 0.0 --validation walk_forward --wf-initial-train-size 50000 --wf-test-size 10000 --wf-step-size 10000 --wf-max-folds 5 --enable-mlflow --mlflow-experiment bookforge --enable-shap --shap-sample-size 2000
+```
+
+### 4. Launch the MLflow UI
+
+```bash
+mlflow server --port 8080 --backend-store-uri sqlite:///mlruns.db
+```
+
+Then open `http://localhost:8080`.
+
+---
+
 ## Replay development
 
 The current replay pipeline is centered on deterministic external event playback.
@@ -326,7 +411,7 @@ The current replay pipeline is centered on deterministic external event playback
 Main components:
 
 - `ExternalOrderEvent.hpp` — external replay event model
-- `HyperliquidCsvReader.*` — parser for enriched Hyperliquid CSV samples
+- `HyperliquidCsvReader.*` — parser for Hyperliquid CSV samples
 - `ReplayConfig.hpp` — replay configuration object
 - `ReplayRunner.*` — deterministic replay traversal
 - replay adapter interface — source-agnostic event application contract
@@ -387,7 +472,8 @@ A good working loop for this repo:
 5. Validate snapshots or replay checkpoints when relevant
 6. Expose the feature to Python when needed
 7. Add Python-side tests
-8. Commit small, focused changes
+8. Run reproducible training/evaluation commands when ML-related
+9. Commit small, focused changes
 
 ---
 
@@ -419,7 +505,7 @@ Project planning and notes live in `docs/`:
 ### Phase 2 — Replay foundation
 - [x] First replay event model
 - [x] Hyperliquid sample extraction workflow
-- [x] Enriched sample CSV generation
+- [x] Sample CSV generation
 - [x] First CSV replay reader
 - [x] Replay configuration object
 - [x] Deterministic replay runner
@@ -445,18 +531,20 @@ Project planning and notes live in `docs/`:
 - [ ] Expanded replay checkpoint validation
 
 ### Phase 4 — Feature extraction
-- [ ] OFI
-- [ ] Depth imbalance
-- [ ] Spread and mid-price tracking
-- [ ] Feature export pipeline
-- [ ] pybind11 bridge
+- [x] OFI
+- [x] Depth imbalance
+- [x] Spread and mid-price tracking
+- [x] Feature export pipeline
+- [x] pybind11 bridge
 
 ### Phase 5 — Research layer
 - [ ] Kyle’s Lambda
-- [ ] Label generation
-- [ ] XGBoost training
-- [ ] Walk-forward evaluation
-- [ ] SHAP analysis
+- [x] Label generation
+- [x] XGBoost training
+- [x] Walk-forward evaluation
+- [x] SHAP analysis
+- [x] ML experiment tracking
+- [x] Pytest coverage for Python wrappers
 
 ### Phase 6 — Demo layer
 - [ ] FastAPI backend
@@ -479,7 +567,8 @@ Bookforge is meant to combine both:
 - **market microstructure intuition**
 - **historical replay infrastructure**
 - **state export and reproducibility**
-- **ML experimentation**
+- **feature extraction and ML experimentation**
+- **walk-forward evaluation and experiment tracking**
 - **clear testing and documentation**
 
 That makes it a strong portfolio piece for roles across:
@@ -498,6 +587,7 @@ That makes it a strong portfolio piece for roles across:
 - Historical data formats and replay logic will evolve as the project grows.
 - The current Hyperliquid replay path is still an approximation of full lifecycle behavior, but it is now test-backed and regression-checked.
 - Snapshot export currently prioritizes deterministic CSV workflows first; binary output can be added later if needed.
+- The current baseline ML pipeline is operational, but label design and class balance still need improvement for more meaningful predictive evaluation.
 
 ---
 
