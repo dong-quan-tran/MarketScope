@@ -274,14 +274,14 @@ Expose C++ outputs to Python and build the research workflow.
 - [x] Add feature export CLI
 - [x] Build first training dataset
 - [x] Train XGBoost baseline
-- [ ] Add walk-forward validation
-- [ ] Add feature importance / SHAP analysis
-- [ ] Add ML experiment tracking
+- [x] Add walk-forward validation
+- [x] Add feature importance / SHAP analysis
+- [x] Add ML experiment tracking
 
 ### Testing / done criteria
 - [ ] Pytest coverage for Python wrappers
-- [ ] Reproducible training run
-- [ ] Baseline metrics logged and documented
+- [x] Reproducible training run
+- [x] Baseline metrics logged and documented
 
 ---
 

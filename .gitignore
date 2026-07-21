@@ -48,3 +48,7 @@ data/read_data.py
 
 # Hyperliquid CSVs
 data/*.csv
+
+# ML experiment tracking
+mlruns/
+mlruns.db
