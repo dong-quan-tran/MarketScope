@@ -7,10 +7,7 @@ from typing import Iterable, Literal
 import pandas as pd
 
 from .labels import make_labels
-from .loaders import (
-    DEFAULT_METADATA_COLUMNS,
-    load_feature_csv,
-)
+from .loaders import DEFAULT_METADATA_COLUMNS, load_feature_csv
 
 LabelType = Literal["regression", "classification"]
 
@@ -26,6 +23,21 @@ class TrainingDataset:
 
 @dataclass(frozen=True)
 class ChronologicalSplit:
+    X_train: pd.DataFrame
+    y_train: pd.Series
+    meta_train: pd.DataFrame
+    X_test: pd.DataFrame
+    y_test: pd.Series
+    meta_test: pd.DataFrame
+
+
+@dataclass(frozen=True)
+class WalkForwardFold:
+    fold_index: int
+    train_start: int
+    train_end: int
+    test_start: int
+    test_end: int
     X_train: pd.DataFrame
     y_train: pd.Series
     meta_train: pd.DataFrame
@@ -128,6 +140,65 @@ def chronological_split(
         y_test=dataset.y.iloc[split_idx:].reset_index(drop=True),
         meta_test=dataset.metadata.iloc[split_idx:].reset_index(drop=True),
     )
+
+
+def walk_forward_splits(
+    dataset: TrainingDataset,
+    *,
+    initial_train_size: int,
+    test_size: int,
+    step_size: int | None = None,
+    max_folds: int | None = None,
+) -> list[WalkForwardFold]:
+    n = len(dataset.X)
+    if n < 3:
+        raise ValueError("Need at least 3 rows for walk-forward validation")
+    if initial_train_size <= 0:
+        raise ValueError("initial_train_size must be positive")
+    if test_size <= 0:
+        raise ValueError("test_size must be positive")
+
+    step = test_size if step_size is None else step_size
+    if step <= 0:
+        raise ValueError("step_size must be positive")
+
+    folds: list[WalkForwardFold] = []
+    train_end = initial_train_size
+    fold_index = 0
+
+    while train_end < n:
+        test_start = train_end
+        test_end = min(test_start + test_size, n)
+
+        if test_start >= test_end:
+            break
+
+        folds.append(
+            WalkForwardFold(
+                fold_index=fold_index,
+                train_start=0,
+                train_end=train_end,
+                test_start=test_start,
+                test_end=test_end,
+                X_train=dataset.X.iloc[:train_end].reset_index(drop=True),
+                y_train=dataset.y.iloc[:train_end].reset_index(drop=True),
+                meta_train=dataset.metadata.iloc[:train_end].reset_index(drop=True),
+                X_test=dataset.X.iloc[test_start:test_end].reset_index(drop=True),
+                y_test=dataset.y.iloc[test_start:test_end].reset_index(drop=True),
+                meta_test=dataset.metadata.iloc[test_start:test_end].reset_index(drop=True),
+            )
+        )
+
+        fold_index += 1
+        if max_folds is not None and fold_index >= max_folds:
+            break
+
+        train_end += step
+
+    if not folds:
+        raise ValueError("No walk-forward folds generated; adjust window sizes")
+
+    return folds
 
 
 def build_training_dataset_from_frame(
