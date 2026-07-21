@@ -1,1 +1,1 @@
-# ML script layer for Bookforge research workflows.
+"""ML training utilities for Bookforge."""
