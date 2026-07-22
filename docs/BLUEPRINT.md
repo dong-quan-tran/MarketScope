@@ -279,7 +279,7 @@ Expose C++ outputs to Python and build the research workflow.
 - [x] Add ML experiment tracking
 
 ### Testing / done criteria
-- [ ] Pytest coverage for Python wrappers
+- [x] Pytest coverage for Python wrappers
 - [x] Reproducible training run
 - [x] Baseline metrics logged and documented
 
@@ -291,20 +291,20 @@ Expose C++ outputs to Python and build the research workflow.
 Create a lightweight surface for inspection and demos.
 
 ### Tasks
-- [ ] Build FastAPI service
-- [ ] Add endpoint for replay summary
-- [ ] Add endpoint for feature export / sample retrieval
+- [x] Build FastAPI service
+- [x] Add endpoint for replay summary
+- [x] Add endpoint for feature export / sample retrieval
 - [ ] Add endpoint for book snapshot inspection
-- [ ] Build React dashboard
-- [ ] Visualize spread, mid-price, depth, and imbalance
-- [ ] Add replay summary cards and charts
-- [ ] Add API tests
-- [ ] Add Docker setup
+- [x] Build React dashboard
+- [x] Visualize spread, mid-price, depth, and imbalance
+- [x] Add replay summary cards and charts
+- [x] Add API tests
+- [x] Add Docker setup
 
 ### Testing / done criteria
-- [ ] End-to-end local demo
-- [ ] Basic API contract tests
-- [ ] Dashboard loads sample replay outputs correctly
+- [x] End-to-end local demo
+- [x] Basic API contract tests
+- [x] Dashboard loads sample replay outputs correctly
 
 ---
 
