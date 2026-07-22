@@ -2,7 +2,7 @@
 
 Bookforge is a hybrid **C++ + Python** market microstructure project for studying how a modern limit order book behaves under replayed market event flow.
 
-At its core is a low-latency **C++20 matching engine and price-time-priority limit order book** with deterministic replay infrastructure, snapshot export, feature export, and regression-tested historical event playback. On top of that, the project now includes a Python research layer for dataset construction, short-horizon machine learning, walk-forward evaluation, feature importance / SHAP analysis, and experiment tracking with MLflow.
+At its core is a low-latency **C++20 matching engine and price-time-priority order book** with deterministic replay infrastructure, snapshot export, feature export, and regression-tested historical event playback. On top of that, the project includes a Python research layer for dataset construction, short-horizon machine learning, walk-forward evaluation, feature importance / SHAP analysis, experiment tracking with MLflow, and a lightweight **FastAPI + React dashboard** for inspection and demos.
 
 The goal is to build a repo that is both:
 
@@ -23,7 +23,7 @@ The goal is to build a repo that is both:
 - Train short-horizon ML models to predict **mid-price direction**
 - Evaluate models with **chronological holdout** and **walk-forward validation**
 - Track experiments and artifacts with **MLflow**
-- Expose the system through a simple **FastAPI backend** and **dashboard**
+- Expose replay outputs through a simple **FastAPI backend** and **React dashboard**
 
 ---
 
@@ -51,8 +51,10 @@ The goal is to build a repo that is both:
 - Pydantic
 - Uvicorn
 - React
+- Vite
 - Recharts
 - Docker
+- Docker Compose
 
 ---
 
@@ -99,6 +101,13 @@ This project is being built in staged phases.
 - Optional SHAP analysis
 - MLflow experiment tracking
 - Pytest coverage for Python wrappers
+- FastAPI service for replay inspection
+- Replay summary API endpoint
+- Feature sample retrieval API endpoint
+- React + Vite dashboard for replay feature visualization
+- Summary cards and charts for spread, mid-price, depth, and imbalance
+- API contract tests
+- Docker-based local demo setup
 
 ### In-progress work
 
@@ -106,7 +115,8 @@ This project is being built in staged phases.
 - More realistic external/internal cancel and fill linkage
 - Label-quality improvements for better class balance
 - Liquidity estimation features such as Kyle’s Lambda
-- API and dashboard layer
+- Book snapshot inspection endpoint
+- Better dashboard controls for replay slicing and inspection
 
 ### Planned next work
 
@@ -114,7 +124,7 @@ This project is being built in staged phases.
 - Expanded replay checkpoint validation workflows
 - Better label diagnostics and confusion-matrix reporting
 - More realistic multi-class / imbalanced evaluation
-- End-to-end API/demo integration
+- Richer end-to-end demo and deployment polish
 
 ---
 
@@ -139,8 +149,8 @@ Bookforge/
 ├── python/
 │   ├── bookforge_py/               # Python package: loaders, dataset helpers, wrapper exports
 │   ├── ml/                         # training and evaluation scripts
-│   ├── api/                        # FastAPI backend
-│   └── dashboard/                  # frontend work (planned / evolving)
+│   └── api/                        # FastAPI backend
+├── dashboard/                      # Vite + React dashboard
 ├── tests/
 │   ├── cpp/                        # GoogleTest suites
 │   ├── python/                     # Pytest suites
@@ -150,6 +160,7 @@ Bookforge/
 │   └── processed/
 ├── docs/
 ├── build/
+├── output/
 └── scripts/
 ```
 
@@ -230,7 +241,7 @@ Current snapshot support includes:
 
 ### Market microstructure features
 
-The project now exports a first feature set including:
+The project exports a first feature set including:
 
 - best bid / best ask
 - spread
@@ -257,6 +268,16 @@ The Python layer supports:
 
 The current baseline pipeline is infrastructure-complete, though the present sample dataset still shows strong label imbalance, so target design remains an active research task.
 
+### API and dashboard
+
+The project now includes a lightweight inspection layer for demos and validation:
+
+- FastAPI backend for replay summary and feature sampling
+- React + Vite dashboard for local visualization
+- summary cards for dataset-level metrics
+- charts for spread, mid-price, depth, and imbalance
+- Docker Compose support for local API/demo startup
+
 ---
 
 ## Hyperliquid workflow
@@ -271,6 +292,7 @@ Current approach:
 4. Replay those events through the deterministic replay runner and adapter layer.
 5. Export book-derived microstructure features to CSV.
 6. Load those features into the Python research layer for model training and evaluation.
+7. Inspect replay outputs through the API and dashboard.
 
 Example current CSV shape:
 
@@ -281,7 +303,7 @@ ts,limitPx,sz,isAsk,statusId
 
 Important limitation:
 
-- the current sample is useful for replay experiments, feature generation, and ML pipeline validation,
+- the current sample is useful for replay experiments, feature generation, dashboard inspection, and ML pipeline validation,
 - but it does **not yet provide perfect order lifecycle reconstruction** for every engine behavior because exact order-ID-based cancel/fill linkage is still being refined.
 
 ---
@@ -404,6 +426,41 @@ Then open `http://localhost:8080`.
 
 ---
 
+## Local demo
+
+### 1. Start the API
+
+#### Windows PowerShell
+```powershell
+$env:PYTHONPATH = "python"
+uvicorn python.api.main:app --reload --port 8010
+```
+
+#### macOS / Linux
+```bash
+PYTHONPATH=python uvicorn python.api.main:app --reload --port 8010
+```
+
+### 2. Start the dashboard
+
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+
+Then open the local Vite URL, usually `http://localhost:5173`.
+
+### 3. Optional Docker Compose flow
+
+```bash
+docker compose up --build
+```
+
+A common Docker pattern is to keep separate images for backend and frontend and connect them with `docker-compose`, which matches the current project layout using a dedicated API Dockerfile and a composed local demo setup.[web:2709]
+
+---
+
 ## Replay development
 
 The current replay pipeline is centered on deterministic external event playback.
@@ -473,7 +530,8 @@ A good working loop for this repo:
 6. Expose the feature to Python when needed
 7. Add Python-side tests
 8. Run reproducible training/evaluation commands when ML-related
-9. Commit small, focused changes
+9. Validate the API/dashboard if the change affects exported outputs
+10. Commit small, focused changes
 
 ---
 
@@ -547,10 +605,11 @@ Project planning and notes live in `docs/`:
 - [x] Pytest coverage for Python wrappers
 
 ### Phase 6 — Demo layer
-- [ ] FastAPI backend
-- [ ] Dashboard
-- [ ] End-to-end benchmarks
-- [ ] Docker setup
+- [x] FastAPI backend
+- [x] Dashboard
+- [ ] Book snapshot inspection endpoint
+- [x] End-to-end local demo
+- [x] Docker setup
 
 ---
 
@@ -569,6 +628,7 @@ Bookforge is meant to combine both:
 - **state export and reproducibility**
 - **feature extraction and ML experimentation**
 - **walk-forward evaluation and experiment tracking**
+- **API-backed inspection and visualization**
 - **clear testing and documentation**
 
 That makes it a strong portfolio piece for roles across:
