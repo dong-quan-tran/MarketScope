@@ -725,3 +725,123 @@ This commit breakdown keeps infrastructure, ML workflow, testing, and documentat
 ## Status after today
 
 Phase 7 is now effectively wrapped up from an implementation perspective: the wrapper package is in place, the training pipeline works in holdout and walk-forward modes, SHAP and MLflow are integrated, and Python wrapper tests are passing. The most important next step is no longer plumbing; it is improving label construction and evaluation diagnostics so the baseline model results become analytically meaningful rather than merely operational.
+
+
+# Progress Log — 2026-07-21
+
+## Summary
+
+Today focused on completing the first usable API + dashboard demo layer for Bookforge and cleaning up the repo structure around it. The main outcome was getting the FastAPI backend and React/Vite dashboard running locally end to end, with replay summary cards and feature charts rendering successfully.
+
+---
+
+## Completed today
+
+### Dashboard debugging and bring-up
+- Fixed the frontend import issue caused by the CSS filename mismatch in `main.jsx`.
+- Verified the Vite frontend builds successfully with `npm run build`.
+- Confirmed the dashboard runs locally with `npm run dev`.
+- Debugged the blank-page runtime issue after build success.
+- Updated `App.jsx` to better match the actual API response schema.
+- Fixed chart data mapping to use the real feature fields returned by the backend.
+- Filtered sparse / null-heavy early sample rows so charts render meaningful data.
+- Confirmed the dashboard now loads and renders:
+  - replay summary cards
+  - mid-price chart
+  - spread chart
+  - L1 bid vs ask depth
+  - L1 depth imbalance
+
+### API and backend work
+- Continued the FastAPI service cleanup and separation.
+- Moved API logic toward a clearer structure using:
+  - `main.py`
+  - `schemas.py`
+  - `services.py`
+- Removed the older `routes.py` layout in favor of the updated organization.
+- Verified the replay summary and feature sampling endpoints are working with the dashboard.
+
+### Repo structure cleanup
+- Removed the old top-level `Dockerfile`.
+- Added `Dockerfile.api`.
+- Updated `docker-compose.yml`.
+- Removed the old `python/dashboard/App.jsx` location in favor of the standalone `dashboard/` frontend app.
+- Added the new `dashboard/` app to the repo structure.
+- Added `tests/python/test_api.py`.
+- Updated `requirements.txt` to support the current API/demo stack.
+
+### Documentation updates
+- Updated the Phase 8 checklist to reflect current progress.
+- Drafted an updated top-level README that reflects:
+  - the current FastAPI backend
+  - the Vite + React dashboard
+  - Docker / local demo workflow
+  - the revised repo layout
+
+---
+
+## Current result
+
+The local demo stack now works in a meaningful way:
+
+- FastAPI backend serves replay summary and sampled feature data.
+- React/Vite dashboard loads successfully in the browser.
+- Dashboard visualizes exported replay features from `output/features.csv`.
+- The project now has a presentable inspection/demo layer on top of the replay and feature pipeline.
+
+---
+
+## Files touched
+
+### Modified
+- `docker-compose.yml`
+- `docs/BLUEPRINT.md`
+- `python/api/__init__.py`
+- `python/api/main.py`
+- `requirements.txt`
+
+### Added
+- `Dockerfile.api`
+- `dashboard/`
+- `python/api/schemas.py`
+- `python/api/services.py`
+- `tests/python/test_api.py`
+
+### Removed
+- `Dockerfile`
+- `python/api/routes.py`
+- `python/dashboard/App.jsx`
+- `python/lob_engine/__init__.py`
+- `python/lob_engine/lob_wrapper.py`
+
+---
+
+## Phase impact
+
+### Phase 8 — API and dashboard
+The following items are now effectively complete:
+- Build FastAPI service
+- Add endpoint for replay summary
+- Add endpoint for feature export / sample retrieval
+- Build React dashboard
+- Visualize spread, mid-price, depth, and imbalance
+- Add replay summary cards and charts
+- Add API tests
+- Add Docker setup
+- End-to-end local demo
+- Basic API contract tests
+- Dashboard loads sample replay outputs correctly
+
+Still open:
+- Add endpoint for book snapshot inspection
+
+---
+
+## Notes and observations
+
+- The main frontend issue was no longer the port configuration; it was a mismatch between the dashboard’s expected schema and the actual JSON returned by the API.
+- Early sampled replay rows contain many null values, so frontend filtering/mapping was necessary to make the charts useful.
+- Separating the dashboard into its own `dashboard/` app makes the project layout cleaner and more realistic for demo/deployment workflows.
+- The API/demo layer is now strong enough to show as part of the portfolio narrative, even though snapshot inspection and some polish items are still pending.
+
+---
