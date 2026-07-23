@@ -651,6 +651,11 @@ That makes it a strong portfolio piece for roles across:
 
 ---
 
-## License
+## Author
 
-Add a license before publishing publicly. MIT is a common default for portfolio projects.
+Bookforge is developed and maintained by:
+
+- **Dong Quan Tran (Johnny)**
+- Role: Owner / Collaborator
+- Email: dxt9721@mavs.uta.edu / dongquan.tran.johnny@gmail.com
+- GitHub: dong-quan-tran
